@@ -1,0 +1,15 @@
+/* frontend/src/components/PreviewGrid.css */
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.grid-placeholder {
+  color: #606770;
+  margin-top: 2rem;
+  font-size: 1.2rem;
+  grid-column: 1 / -1; /* Faz com que o texto ocupe a largura total */
+  text-align: center;
+}

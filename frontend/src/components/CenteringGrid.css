@@ -1,0 +1,33 @@
+.centering-grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Essencial para não bloquear o arrasto do logo */
+  z-index: 5;
+}
+
+.grid-line-h,
+.grid-line-v {
+  position: absolute;
+  background-color: transparent;
+}
+
+.grid-line-h {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  transform: translateY(-50%);
+  border-top: 1px dashed rgba(0, 0, 0, 0.3);
+}
+
+.grid-line-v {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  transform: translateX(-50%);
+  border-left: 1px dashed rgba(0, 0, 0, 0.3);
+}

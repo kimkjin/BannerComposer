@@ -1,0 +1,144 @@
+.composer-page {
+  display: grid;
+  grid-template-columns: 380px 1fr; 
+  height: 100vh;
+}
+
+.preview-area {
+  padding: 2.5rem;
+  overflow-y: auto;
+  height: 100vh;
+  background-color: var(--background-main);
+  box-sizing: border-box;
+}
+
+.preview-header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-primary); 
+  letter-spacing: -1.5px;
+}
+
+.preview-header p {
+  margin: 0.25rem 0 0 0;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.main-action-controls {
+  display: flex;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.action-button {
+  flex-grow: 1;
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  letter-spacing: 0.5px;
+}
+
+.action-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.action-button:disabled {
+  background-color: #ECF0F1 !important;
+  color: #BDC3C7;
+  cursor: not-allowed;
+}
+
+.action-button.process {
+  background-color: var(--action-primary-bg);
+}
+.action-button.download {
+  background-color: var(--success-bg);
+}
+
+.mass-assign-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+  padding: 0.75rem 1rem;
+  background-color: transparent;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.mass-assign-controls span {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.mass-assign-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: #fff;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mass-assign-btn.a-btn { color: var(--assign-a-color); border-color: var(--assign-a-color); }
+.mass-assign-btn.b-btn { color: var(--assign-b-color); border-color: var(--assign-b-color); }
+
+.mass-assign-btn:hover:not(:disabled) {
+  color: white;
+}
+.mass-assign-btn.a-btn:hover:not(:disabled) { background-color: var(--assign-a-color); }
+.mass-assign-btn.b-btn:hover:not(:disabled) { background-color: var(--assign-b-color); }
+
+.mass-assign-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.test-image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.test-image-modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  text-align: center;
+}
+
+.test-image-modal-content img {
+  max-width: 100%;
+  max-height: 70vh;
+  margin: 1rem 0;
+}
+
+.test-image-modal-content button {
+  /* Reutilize o estilo do action-button se desejar */
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background-color: var(--privalia-pink);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}

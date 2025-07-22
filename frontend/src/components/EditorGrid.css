@@ -1,0 +1,42 @@
+/* frontend/src/components/EditorGrid.css */
+
+.editor-grid-overlay {
+  /* Ocupa todo o espaço do container pai (o editor-viewport) */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  
+  /* Garante que a grade não bloqueie cliques ou arrastos no logo/imagem abaixo */
+  pointer-events: none;
+
+  /* Coloca a grade acima da imagem/fundo, mas abaixo de outros controles se necessário */
+  z-index: 15; 
+}
+
+.grid-line-horizontal,
+.grid-line-vertical {
+  position: absolute;
+  background-color: transparent;
+}
+
+/* Linha horizontal centralizada */
+.grid-line-horizontal {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  transform: translateY(-50%);
+  border-top: 1px dashed rgba(0, 0, 0, 0.4);
+}
+
+/* Linha vertical centralizada */
+.grid-line-vertical {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  transform: translateX(-50%);
+  border-left: 1px dashed rgba(0, 0, 0, 0.4);
+}

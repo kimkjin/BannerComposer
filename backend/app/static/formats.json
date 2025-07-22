@@ -1,0 +1,130 @@
+{
+  "formats": [
+    {
+      "name": "SHOWROOM_MOBILE", "width": 1080, "height": 445,
+      "rules": {
+        "type": "standard",
+        "margin": {"x": 40, "y": 40},
+        "logo_area": {"width": 356, "height": 180},
+        "composition_area": {"width": 645, "height": 405, "offset_x": 40}
+      }
+    },
+    {
+      "name": "SLOT2_MAIL", "width": 600, "height": 320,
+      "rules": {
+        "type": "logo_aware",
+        "margin": {"x": 40, "y": 40},
+        "logo_area": {"width": 230, "height": 118}
+      }
+    },
+    {
+      "name": "SLOT2_WEB", "width": 620, "height": 220,
+      "rules": {
+        "type": "standard",
+        "margin": {"x": 21, "y": 21},
+        "logo_area": {"width": 161, "height": 98},
+        "composition_area": {"width": 420, "height": 220, "offset_x": 21}
+      }
+    },
+    {
+      "name": "SLOT1_WEB", "width": 300, "height": 220,
+      "rules": {
+        "type": "logo_aware",
+        "margin": {"x": 21, "y": 21},
+        "logo_area": {"width": 130, "height": 95},
+        "composition_area": {"width": 200, "height": 100, "offset_x": 21}
+      }
+    },
+    {
+      "name": "SLOT1_NEXT_WEB", "width": 300, "height": 220,
+      "rules": {
+        "type": "centered_logo",
+        "margin": {"x": 83, "y": 45},
+        "logo_area": {"width": 211, "height": 55},
+        "composition_area": {"width": 211, "height": 220, "offset_x": 45}
+      }
+    },
+    {
+      "name": "SLOT3_WEB", "width": 940, "height": 220,
+      "rules": {
+        "type": "standard",
+        "margin": {"x": 20, "y": 20},
+        "logo_area": {"width": 161, "height": 98},
+        "composition_area": {"width": 760, "height": 220, "offset_x": 20}
+      }
+    },
+    {
+      "name": "SLOT2_WEB_PRE", "width": 620, "height": 220,
+      "rules": { "type": "copy", "source": "SLOT2_WEB" }
+    },
+    {
+      "name": "SLOT1_WEB_PRE", "width": 300, "height": 220,
+      "rules": { "type": "copy", "source": "SLOT1_WEB" }
+    },
+    {
+      "name": "SLOT1_NEXT_WEB_PRE", "width": 300, "height": 220,
+      "rules": { "type": "copy", "source": "SLOT1_NEXT_WEB" }
+    },
+    {
+      "name": "SLOT3_WEB_PRE", "width": 940, "height": 220,
+      "rules": { "type": "copy", "source": "SLOT3_WEB" }
+    },
+    {
+      "name": "WEB_PUSH", "width": 360, "height": 180,
+      "rules": {
+        "type": "standard",
+        "margin": {"x": 21, "y": 21},
+        "logo_area": {"width": 120, "height": 53},
+        "composition_area": {"width": 221, "height": 180, "offset_x": 21}
+      }
+    },
+    {
+      "name": "SLIDER_MOBILE", "width": 1080, "height": 648,
+      "rules": {
+        "type": "standard",
+        "margin": {"x": 55, "y": 55},
+        "logo_area": {"width": 302, "height": 168},
+        "composition_area": {"width": 720, "height": 595, "offset_x": 55}
+      }
+    },
+    {
+      "name": "SLIDER_WEB", "width": 940, "height": 440,
+      "rules": {
+        "type": "standard",
+        "margin": {"x": 60, "y": 60},
+        "logo_area": {"width": 280, "height": 120},
+        "composition_area": {"width": 600, "height": 440, "offset_x": 60}
+      }
+    },
+    {
+      "name": "HOME_PRIVATE", "width": 940, "height": 530,
+      "rules": {
+        "type": "split_left_white",
+        "split_width": 300,
+        "margin": {"x": 20, "y": 40},
+        "logo_area": {"width": 260, "height": 100}
+      }
+    },
+    { "name": "HOME_MOBILE", "width": 640, "height": 426, "rules": { "type": "full_bleed" } },
+    {
+      "name": "HOME_PRIVATE_PUBLIC", "width": 940, "height": 530,
+      "rules": {
+        "type": "split_left_white",
+        "split_width": 300,
+        "margin": {"x": 20, "y": 40},
+        "logo_area": {"width": 260, "height": 100}
+      }
+    },
+    {
+      "name": "BANNER", "width": 940, "height": 140, 
+      "rules": { "type": "logo_only_centered" } 
+    },
+    { 
+      "name": "BRAND_LOGO", "width": 170, "height": 75, 
+      "rules": { 
+        "type": "logo_only_centered_white_bg",
+        "logo_area": {"width": 150, "height": 55}
+      } 
+    }
+  ]
+}

@@ -1,0 +1,329 @@
+// frontend/src/pages/ComposerPage.jsx
+
+import React, { useState, useEffect } from 'react';
+import {
+    getFormatsConfig,
+    getPreviews,
+    getRecognitionTest,
+    processAndDownloadZip,
+    logErrorToServer,
+    listLogoFolders,
+    listLogosInFolder,
+    getSinglePreview,
+    listFonts // Importa a função de busca de fontes
+} from '../api/composerApi';
+import BriefingPanel from '../components/BriefingPanel';
+import PreviewGrid from '../components/PreviewGrid';
+import ImageEditorModal from '../components/ImageEditorModal';
+import SplitLayoutEditor from '../components/SplitLayoutEditor';
+import BrandLogoEditor from '../components/BrandLogoEditor';
+import { FORMAT_ORDER, IMAGE_A_ID, IMAGE_B_ID } from '../constants';
+import './ComposerPage.css';
+
+function ComposerPage() {
+    const [formatsConfig, setFormatsConfig] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [statusMessage, setStatusMessage] = useState("Aguardando o upload das imagens.");
+    const [files, setFiles] = useState({ [IMAGE_A_ID]: null, [IMAGE_B_ID]: null });
+    const [previews, setPreviews] = useState({});
+    const [assignments, setAssignments] = useState({});
+    const [selectedFolder, setSelectedFolder] = useState('');
+    const [logos, setLogos] = useState([]);
+    const [selectedLogo, setSelectedLogo] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingFormat, setEditingFormat] = useState(null);
+    const [manualOverrides, setManualOverrides] = useState({});
+
+    // Novo estado para gerenciar a tagline globalmente
+    const [taglineState, setTaglineState] = useState({
+        enabled: false,
+        text: '',
+        font_filename: 'Montserrat-Regular.ttf', // Um padrão seguro
+        font_size: 24,
+        color: '#000000',
+        offset_y: 10,
+    });
+
+    useEffect(() => {
+        const fetchFormatRules = async () => {
+            try {
+                const config = await getFormatsConfig();
+                setFormatsConfig(config);
+            } catch (error) {
+                console.error("Não foi possível carregar as regras dos formatos do backend.", error);
+                setStatusMessage("Erro: Falha ao carregar as regras dos formatos.");
+            }
+        };
+        fetchFormatRules();
+    }, []);
+
+    useEffect(() => {
+        const initialAssignments = {};
+        FORMAT_ORDER.forEach(name => { initialAssignments[name] = IMAGE_A_ID; });
+        setAssignments(initialAssignments);
+    }, []);
+
+    useEffect(() => {
+        if (selectedFolder) {
+            const fetchLogos = async () => {
+                setIsLoading(true);
+                setStatusMessage(`Carregando logos de ${selectedFolder}...`);
+                try {
+                    const logosData = await listLogosInFolder(selectedFolder);
+                    setLogos(logosData.logos);
+                    if (logosData.logos.length > 0) {
+                        setSelectedLogo(logosData.logos[0].filename);
+                    } else {
+                        setSelectedLogo(null);
+                    }
+                    setStatusMessage("Logos carregados. Selecione um para continuar.");
+                } catch (error) {
+                    console.error(`Erro ao buscar logos de ${selectedFolder}:`, error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            fetchLogos();
+        } else {
+            setLogos([]);
+            setSelectedLogo(null);
+        }
+    }, [selectedFolder]);
+
+    const handleFileSelect = (file, imageId) => {
+        setFiles(prev => ({ ...prev, [imageId]: file }));
+    };
+
+    const handleAssignmentChange = (formatName, imageId) => {
+        setAssignments(prev => ({ ...prev, [formatName]: imageId }));
+    };
+
+    const handleAssignAll = (imageId) => {
+        if (!files[imageId]) {
+            alert(`Por favor, suba a Imagem ${imageId === IMAGE_A_ID ? 'A' : 'B'} primeiro.`);
+            return;
+        }
+        const newAssignments = {};
+        FORMAT_ORDER.forEach(name => { newAssignments[name] = imageId; });
+        setAssignments(newAssignments);
+    };
+
+    const handleFolderSearch = async (query) => {
+        try {
+            const data = await listLogoFolders(query);
+            return data.folders;
+        } catch (error) {
+            console.error("Erro na busca de pastas:", error);
+            return [];
+        }
+    };
+
+    const handleFontSearch = async (query) => {
+        try {
+            const data = await listFonts(query);
+            return data.fonts;
+        } catch (error) {
+            console.error("Erro na busca de fontes:", error);
+            return [];
+        }
+    };
+    
+    const handleStartEditing = (formatName, assignedImageId) => {
+        const previewData = previews[formatName];
+        const originalImageFile = files[assignedImageId];
+        const selectedLogoData = logos.find(l => l.filename === selectedLogo);
+        const formatConfig = formatsConfig.find(f => `${f.name}.jpg` === formatName);
+        const existingOverride = manualOverrides[formatName] || null;
+
+        if (previewData && originalImageFile && selectedLogoData && formatConfig) {
+            const reader = new FileReader();
+            reader.readAsDataURL(originalImageFile);
+            reader.onloadend = () => {
+                const base64Image = reader.result;
+                setEditingFormat({
+                    name: formatName,
+                    width: previewData.width,
+                    height: previewData.height,
+                    originalImageB64: base64Image,
+                    logoData: selectedLogoData.data,
+                    override: existingOverride,
+                    rules: formatConfig.rules
+                });
+                setIsEditing(true);
+            };
+        } else {
+            alert("Não foi possível carregar os dados para edição.");
+        }
+    };
+
+    const handleCloseEditor = () => {
+        setIsEditing(false);
+        setEditingFormat(null);
+    };
+
+    const handleSaveEdit = async (formatName, saveData) => {
+        const newOverrides = { ...manualOverrides, [formatName]: saveData };
+        setManualOverrides(newOverrides);
+        
+        setStatusMessage(`Atualizando a pré-visualização de ${formatName}...`);
+        setIsLoading(true);
+        handleCloseEditor();
+
+        try {
+            const assignedImageId = assignments[formatName];
+            const imageFile = files[assignedImageId];
+            const logoInfo = { folder: selectedFolder, filename: selectedLogo };
+
+            const imageBlob = await getSinglePreview(formatName, imageFile, logoInfo, saveData);
+            const reader = new FileReader();
+            reader.readAsDataURL(imageBlob);
+            reader.onloadend = () => {
+                const base64data = reader.result.split(',')[1];
+                setPreviews(prev => ({
+                    ...prev,
+                    [formatName]: { ...prev[formatName], data: base64data, composition_data: saveData }
+                }));
+            };
+            setStatusMessage("Pré-visualização atualizada com sucesso!");
+        } catch (error) {
+            console.error(`Erro ao atualizar a preview de ${formatName}:`, error);
+            setStatusMessage("Erro ao atualizar a preview.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleGeneratePreviews = async () => {
+        if (!files.imageA || !files.imageB || !selectedLogo) {
+            alert("Por favor, suba ambas as imagens e selecione uma marca/logo.");
+            return;
+        }
+
+        const overridesForGeneration = { ...manualOverrides };
+        if (taglineState.enabled && taglineState.text) {
+            for (const formatName of FORMAT_ORDER) {
+                overridesForGeneration[formatName] = {
+                    ...overridesForGeneration[formatName],
+                    tagline: { ...taglineState }
+                };
+            }
+        }
+        
+        setIsLoading(true);
+        setStatusMessage("Gerando pré-visualizações...");
+        setPreviews({});
+
+        try {
+            const previewData = await getPreviews(files, assignments, selectedFolder, selectedLogo, overridesForGeneration);
+            setPreviews(previewData);
+            setManualOverrides(overridesForGeneration);
+            setStatusMessage("Pré-visualizações geradas com sucesso!");
+        } catch (error) {
+            console.error("Falha ao gerar as pré-visualizações:", error);
+            setStatusMessage("Erro ao gerar previews.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleDownloadZip = async () => {
+        alert("Função de Download ainda não implementada.");
+    };
+
+    const canGenerate = files.imageA && files.imageB && selectedLogo;
+
+    return (
+        <div className="composer-page">
+            <BriefingPanel
+                onFileSelect={handleFileSelect}
+                onFolderSearch={handleFolderSearch}
+                onFolderSelect={setSelectedFolder}
+                logos={logos}
+                selectedLogo={selectedLogo}
+                onLogoSelect={setSelectedLogo}
+                taglineState={taglineState}
+                onTaglineStateChange={setTaglineState}
+                onFontSearch={handleFontSearch}
+            />
+
+            {isEditing && editingFormat && (
+                (() => {
+                    const formatsForSplitLayout = ['HOME_PRIVATE.jpg', 'HOME_PRIVATE_PUBLIC.jpg'];
+
+                    const editorProps = {
+                        format: editingFormat.name,
+                        preview: editingFormat,
+                        onClose: handleCloseEditor,
+                        onSave: handleSaveEdit,
+                        globalTaglineState: taglineState,
+                    };
+
+                    if (formatsForSplitLayout.includes(editingFormat.name)) {
+                        return <SplitLayoutEditor key={editingFormat.name} {...editorProps} />;
+                    } 
+                    else if (editingFormat.name === 'BRAND_LOGO.jpg') {
+                        return <BrandLogoEditor key={editingFormat.name} {...editorProps} />;
+                    } 
+                    else {
+                        return <ImageEditorModal key={editingFormat.name} {...editorProps} />;
+                    }
+                })()
+            )}
+            
+            <main className="preview-area">
+                <div className="preview-header">
+                    <h1>Privalia Composer</h1>
+                    <p>{statusMessage}</p>
+                </div>
+
+                <div className="main-action-controls">
+                    <button 
+                        className={`action-button process`}
+                        onClick={handleGeneratePreviews} 
+                        disabled={!canGenerate || isLoading}
+                        title={!canGenerate ? "Suba ambas as imagens e selecione um logo" : "Gerar pré-visualizações"}
+                    >
+                        {isLoading ? 'Processando...' : 'Gerar Pré-visualizações'}
+                    </button>
+                    <button 
+                        className={`action-button download`}
+                        onClick={handleDownloadZip} 
+                        disabled={Object.keys(previews).length === 0 || isLoading}
+                        title={Object.keys(previews).length === 0 ? "Gere as pré-visualizações primeiro" : "Baixar .zip"}
+                    >
+                        Baixar .zip
+                    </button>
+                </div>
+                
+                <div className="mass-assign-controls">
+                    <span>Atribuir todos os formatos para:</span>
+                    <button 
+                        className="mass-assign-btn a-btn"
+                        onClick={() => handleAssignAll(IMAGE_A_ID)}
+                        disabled={!files[IMAGE_A_ID]}
+                    >
+                        Imagem A
+                    </button>
+                    <button 
+                        className="mass-assign-btn b-btn"
+                        onClick={() => handleAssignAll(IMAGE_B_ID)}
+                        disabled={!files[IMAGE_B_ID]}
+                    >
+                        Imagem B
+                    </button>
+                </div>
+                
+                <PreviewGrid
+                    previews={previews}
+                    isLoading={isLoading}
+                    assignments={assignments}
+                    onAssignmentChange={handleAssignmentChange}
+                    onStartEdit={handleStartEditing}
+                    formatOrder={FORMAT_ORDER}
+                />
+            </main>
+        </div>
+    );
+}
+
+export default ComposerPage;

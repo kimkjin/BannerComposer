@@ -1,0 +1,137 @@
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+const apiClient = axios.create({
+    baseURL: API_URL,
+});
+
+export const listLogoFolders = async (query = '') => {
+    try {
+        const response = await apiClient.get(`/list-logo-folders?query=${encodeURIComponent(query)}`);
+        return response.data;
+    } catch (error) {
+        console.error("API Error: Falha ao buscar pastas de logos", error);
+        throw error;
+    }
+};
+
+export const listLogosInFolder = async (folderName) => {
+    try {
+        const response = await apiClient.get(`/list-logos/${encodeURIComponent(folderName)}`);
+        return response.data;
+    } catch (error) {
+        console.error(`API Error: Falha ao buscar logos para a pasta ${folderName}`, error);
+        throw error;
+    }
+};
+
+export const getFormatsConfig = async () => {
+    try {
+        const response = await apiClient.get('/get-formats-config');
+        return response.data; 
+    } catch (error) {
+        console.error("API Error: Falha ao buscar configurações de formato", error);
+        throw error;
+    }
+};
+
+export const getPreviews = async (files, assignments, selectedFolder, selectedLogo, overrides = {}) => {
+    const formData = new FormData();
+    formData.append('imageA', files.imageA);
+    formData.append('imageB', files.imageB);
+    formData.append('selected_folder', selectedFolder);
+    formData.append('selected_logo_filename', selectedLogo);
+
+    const assignmentsJson = JSON.stringify(assignments);
+    const assignmentsBlob = new Blob([assignmentsJson], { type: 'application/json' });
+    formData.append('assignments', assignmentsBlob, 'assignments.json');
+
+    // Adiciona os overrides ao FormData para que o backend os receba
+    const overridesJson = JSON.stringify(overrides);
+    const overridesBlob = new Blob([overridesJson], { type: 'application/json' });
+    formData.append('overrides', overridesBlob, 'overrides.json');
+
+    const response = await apiClient.post('/generate-previews', formData);
+    return response.data.previews;
+};
+
+export const getSinglePreview = async (formatName, imageFile, logoInfo, override) => {
+    const formData = new FormData();
+    
+    formData.append('file', imageFile); // Corrigido
+    formData.append('format_name', formatName.replace('.jpg', ''));
+    formData.append('selected_folder', logoInfo.folder);
+    formData.append('selected_logo_filename', logoInfo.filename);
+
+    // O override deve ser para o formato específico.
+    const overrideJson = JSON.stringify({ [formatName]: override }); 
+    const overrideBlob = new Blob([overrideJson], { type: 'application/json' });
+    formData.append('overrides', overrideBlob, 'overrides.json');
+    
+    const response = await apiClient.post('/generate-single-preview', formData, {
+        responseType: 'blob',
+    });
+
+    return response.data;
+};
+
+export const processAndDownloadZip = async (files, assignments, selectedFolder, selectedLogo, overrides = {}) => {
+    const formData = new FormData();
+    formData.append('imageA', files.imageA);
+    formData.append('imageB', files.imageB);
+    formData.append('selected_folder', selectedFolder);
+    formData.append('selected_logo_filename', selectedLogo);
+
+    const assignmentsJson = JSON.stringify(assignments);
+    const assignmentsBlob = new Blob([assignmentsJson], { type: 'application/json' });
+    formData.append('assignments', assignmentsBlob, 'assignments.json');
+    
+    const overridesJson = JSON.stringify(overrides);
+    const overridesBlob = new Blob([overridesJson], { type: 'application/json' });
+    formData.append('overrides', overridesBlob, 'overrides.json');
+
+    const response = await apiClient.post('/compose-and-zip', formData, {
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+export const logErrorToServer = async (error) => {
+    try {
+        const errorData = {
+            name: error.name || 'UnknownError',
+            message: error.message || 'No message',
+            stack: error.stack || 'No stack trace',
+            componentStack: error.componentStack || null, 
+        };
+        await apiClient.post('/log-client-error', errorData);
+    } catch (loggingError) {
+        console.error("Falha ao enviar log de erro para o servidor:", loggingError);
+    }
+};
+
+export const getRecognitionTest = async (file, formatName) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('format_name', formatName); 
+
+    const response = await apiClient.post('/test-recognition', formData, {
+        responseType: 'blob',
+    });
+    
+    return response.data;
+};
+
+export const listFonts = async (query = '') => {
+    try {
+        const response = await apiClient.get(`/list-fonts?query=${encodeURIComponent(query)}`);
+        // --- CORREÇÃO AQUI ---
+        return response.data; // Retorna o objeto completo { fonts: [...] }
+    } catch (error) {
+        // Loga o erro no console do navegador para debug, mas não propaga o erro.
+        console.error("API Error: Falha ao buscar fontes. Verifique se o backend está no ar e se a pasta de fontes existe.", error);
+        // Retorna um objeto válido para não quebrar o SearchableDropdown.
+        return { fonts: [] };
+    }
+};

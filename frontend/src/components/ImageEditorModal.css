@@ -1,0 +1,222 @@
+/* frontend/src/components/ImageEditorModal.css */
+
+.image-editor-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
+    z-index: 2000;
+    display: grid;
+    place-items: center;
+    overflow: auto; 
+    padding: 1rem; 
+    box-sizing: border-box;
+}
+
+.image-editor-content {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    max-width: 95vw;
+    width: fit-content;
+}
+
+.editor-main-area {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.editor-viewport-container {
+    flex-shrink: 0;
+}
+
+.editor-viewport {
+    position: relative;
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    /* Margin já está no container */
+}
+
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 280px;
+}
+
+.logo-rnd {
+    border: 1px dashed rgba(255, 255, 255, 0.7);
+}
+.logo-rnd:hover {
+    border-color: var(--privalia-pink);
+}
+.logo-rnd img {
+    pointer-events: none;
+}
+
+.editor-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.control-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    flex-basis: 120px;
+}
+
+.control-group input[type="range"] {
+    flex-grow: 1;
+}
+
+.size-input {
+    width: 70px;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.editor-actions button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.editor-actions .btn-save {
+    background-color: var(--privalia-pink);
+    color: white;
+}
+.editor-actions .btn-cancel {
+    background-color: #f0f2f5;
+    color: #333;
+}
+
+.background-controls {
+    border: 1px solid #e0e0e0;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.background-controls h4 {
+    margin: 0 0 1rem 0;
+    text-align: left;
+    font-size: 1rem;
+}
+
+.bg-type-selector {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.bg-type-selector button {
+    flex-grow: 1;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    background-color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.bg-type-selector button.active {
+    background-color: var(--privalia-pink);
+    color: white;
+    border-color: var(--privalia-pink);
+    font-weight: bold;
+}
+
+.rcp {
+    width: 100% !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+.logo-filter-controls {
+  width: 100%;
+}
+
+.logo-filter-buttons {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.logo-filter-buttons button {
+  flex-grow: 1;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.logo-filter-buttons button.active {
+  background-color: var(--text-primary);
+  color: white;
+  border-color: var(--text-primary);
+  font-weight: bold;
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: filter 0.2s ease-in-out;
+}
+
+.logo-image.logo-filter-black {
+  filter: brightness(0) saturate(100%);
+}
+
+.logo-image.logo-filter-white {
+  filter: brightness(0) saturate(100%) invert(1);
+}
+
+.tagline-rnd {
+  border: 1px dashed rgba(230, 0, 126, 0.6); 
+  cursor: move;
+  width: fit-content !important;
+  height: fit-content !important;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.checkbox-label:has(input:disabled) {
+  color: #aaa;
+  cursor: not-allowed;
+}

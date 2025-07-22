@@ -1,0 +1,80 @@
+/* frontend/src/App.css */
+
+/* 1. Variáveis Globais */
+:root {
+  --background-color: #f0f2f5;
+  --card-background: #ffffff;
+  --text-color: #1c1e21;
+  --primary-color: #e6007e; /* Cor da Privalia */
+  --border-color: #dddfe2;
+}
+
+/* 2. Estilos de Base */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+/* 3. Estilos dos Elementos do App.jsx */
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: var(--card-background);
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.App-header h1 {
+  color: var(--primary-color);
+  margin: 0;
+}
+
+.composer-main {
+  padding: 0 2rem;
+  max-width: 1600px;
+  margin: 0 auto; /* Centraliza o conteúdo principal */
+}
+
+.controls {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: var(--card-background);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.controls button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.controls button:disabled {
+  background-color: #f399ce;
+  cursor: not-allowed;
+}
+
+.controls button:hover:not(:disabled) {
+  background-color: #c4006b;
+}
+
+.error-message {
+  color: #fa383e;
+  font-weight: bold;
+}

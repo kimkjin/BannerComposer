@@ -1,0 +1,15 @@
+# Ambiente Virtual
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Arquivos grandes de design
+*.psd
+*.pptx
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
