@@ -159,7 +159,6 @@ function ComposerPage() {
     };
 
     const handleSaveEdit = async (formatName, saveData) => {
-        // (Esta função foi atualizada na resposta anterior e está correta)
         const newOverrides = { ...manualOverrides, [formatName]: saveData };
         setManualOverrides(newOverrides);
         
