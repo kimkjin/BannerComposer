@@ -288,18 +288,27 @@
 }
 
 .remove-logo-btn {
-    background-color: #fa383e;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    font-size: 1.2rem;
-    line-height: 22px;
-    cursor: pointer;
-    transition: background-color 0.2s;
+  /* Estilos baseados no .assign-btn */
+  width: 28px;
+  height: 28px;
+  border-radius: 8px; /* <-- A principal mudança, de círculo para retângulo arredondado */
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.8rem; /* Tamanho um pouco maior para o '×' */
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  line-height: 1;
+
+  /* Esquema de cores vermelho */
+  background-color: #fa383e;
+  color: white;
+  border: 1px solid #fa383e;
 }
 
 .remove-logo-btn:hover {
-    background-color: #c4006b;
+  background-color: #e02d33; /* Vermelho um pouco mais escuro no hover */
+  border-color: #e02d33;
 }
