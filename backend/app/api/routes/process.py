@@ -74,27 +74,26 @@ async def generate_previews(
     imageA: UploadFile = File(...),
     imageB: UploadFile = File(...),
     assignments: UploadFile = File(...),
-    selected_folder: str = Form(...),
-    selected_logo_filename: str = Form(...),
+    selected_logos: str = Form(...),
     overrides: UploadFile = File(...) 
 ):
     try:
         files_bytes = { "imageA": await imageA.read(), "imageB": await imageB.read() }
         assignments_dict = json.loads(await assignments.read())
         overrides_dict = json.loads(await overrides.read())
+        # Desserializar a string JSON de logos para uma lista Python
+        selected_logos_list = json.loads(selected_logos)
 
         composed_data = composition_service.compose_all_formats_assigned(
             files_bytes,
             assignments_dict,
-            selected_folder,
-            selected_logo_filename,
+            selected_logos_list, # <-- Passar a lista de logos
             overrides=overrides_dict
         )
         
+        # O resto da função permanece igual...
         formats_map = {fmt['name']: fmt for fmt in composition_service.FORMAT_CONFIG}
         previews_data = {}
-        
-        # O loop agora processa TODOS os formatos, incluindo BRAND_LOGO
         for name, data_dict in composed_data.items():
             format_name_key = name.replace('.jpg', '')
             previews_data[name] = {
@@ -103,7 +102,6 @@ async def generate_previews(
                 "height": formats_map[format_name_key].get('height'),
                 "composition_data": data_dict['composition_data']
             }
-            
         return {"previews": previews_data}
     except Exception as e:
         logger.error(f"Erro na rota /generate-previews: {e}", exc_info=True)
@@ -113,8 +111,7 @@ async def generate_previews(
 async def generate_single_preview(
     file: UploadFile = File(...),
     format_name: str = Form(...),
-    selected_folder: str = Form(...),
-    selected_logo_filename: str = Form(...),
+    selected_logos: str = Form(...),
     overrides: UploadFile = File(...)
 ):
     try:
@@ -123,24 +120,27 @@ async def generate_single_preview(
             raise HTTPException(status_code=404, detail=f"Formato '{format_name}' não encontrado.")
 
         image_bytes = await file.read()
-        overrides_bytes = await overrides.read()
-        overrides_dict = json.loads(overrides_bytes)
+        overrides_dict = json.loads(await overrides.read())
         
-        format_override = overrides_dict.get(f"{format_name}.jpg", {})
+        selected_logos_list = json.loads(selected_logos)
+        logos_to_process = []
+        for logo_info in selected_logos_list:
+            try:
+                logo_path = os.path.join(LOGOS_BASE_PATH, logo_info['folder'], logo_info['filename'])
+                with open(logo_path, "rb") as f:
+                    logos_to_process.append({'bytes': f.read()})
+            except Exception:
+                continue
 
         image_to_process = Image.open(io.BytesIO(image_bytes))
         analysis_to_use = ia_service.analyze(image_bytes)
-        
-        logo_path = os.path.join(LOGOS_BASE_PATH, selected_folder, selected_logo_filename)
-        with open(logo_path, "rb") as f:
-            logo_bytes_to_use = f.read()
 
         composed_image, _ = composition_service.compose_single_format(
             image_to_process,
             analysis_to_use,
             fmt_config,
-            logo_bytes_to_use,
-            overrides=format_override
+            logos_to_process,
+            overrides=overrides_dict
         )
         
         buffer = io.BytesIO()

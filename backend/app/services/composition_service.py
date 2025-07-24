@@ -13,12 +13,10 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- Carregamento da Configuração ---
 try:
     with open("app/static/formats.json", "r", encoding="utf-8") as f:
         config = json.load(f)
         formats_map = {fmt['name']: fmt for fmt in config['formats']}
-        # Processa as regras de tipo 'copy'
         for fmt in config['formats']:
             if 'rules' in fmt and fmt['rules'].get('type') == 'copy':
                 source_format_name = fmt['rules'].get('source')
@@ -157,253 +155,174 @@ def _apply_automatic_composition(canvas: Image.Image, original_image: Image.Imag
     canvas.paste(resized_image, (paste_x, paste_y))
     return composition_data
 
-
 def compose_single_format(original_image: Image.Image, analysis: dict, fmt_config: dict, 
-                          logo_bytes: bytes, overrides: dict = None) -> tuple[Image.Image, dict | None]:
-    if overrides is None:
-        overrides = {}
+                          logos_data: list, overrides: dict = None) -> tuple[Image.Image, dict | None]:
+    if overrides is None: overrides = {}
     
     rules = fmt_config.get('rules', {})
     rule_type = rules.get('type', 'full_bleed')
     canvas_w, canvas_h = fmt_config['width'], fmt_config['height']
     composition_data = None
-    canvas = Image.new('RGBA', (canvas_w, canvas_h), (255, 255, 255, 255))
     
     if rule_type == 'logo_only_centered_white_bg':
-        logger.info(f"Processando formato especial 'logo_only_centered_white_bg': {fmt_config['name']}")
-        
-        # 1. Cria o canvas final com fundo branco
-        final_canvas = Image.new('RGBA', (canvas_w, canvas_h), (255, 255, 255, 255))
-        
-        if logo_bytes:
-            try:
-                logo_image = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
-                logo_overrides = overrides.get('logo', {})
+        logger.info(f"Processando formato 'logo_only_centered_white_bg': {fmt_config['name']}")
+        canvas = Image.new('RGBA', (canvas_w, canvas_h), (255, 255, 255, 255))
+        logo_overrides_list = overrides.get('logo', [])
+        processed_logos = []
+        total_width_of_logos, logo_spacing = 0, 10
+        for i, logo_data in enumerate(logos_data):
+            logo_override = logo_overrides_list[i] if i < len(logo_overrides_list) else {}
+            logo_image = Image.open(io.BytesIO(logo_data['bytes'])).convert("RGBA")
+            if logo_override.get('color_filter'): logo_image = _apply_logo_color_filter(logo_image, logo_override['color_filter'])
+            if logo_image.getbbox(): logo_image = logo_image.crop(logo_image.getbbox())
+            target_width = logo_override.get('width', rules.get('logo_area', {}).get('width', 150))
+            logo_image = logo_image.resize((target_width, int(target_width * logo_image.height / logo_image.width)), Image.Resampling.LANCZOS)
+            processed_logos.append(logo_image)
+            total_width_of_logos += logo_image.width
+        if len(processed_logos) > 1: total_width_of_logos += logo_spacing * (len(processed_logos) - 1)
+        current_x = (canvas_w - total_width_of_logos) / 2
+        for logo_image in processed_logos:
+            paste_y = (canvas_h - logo_image.height) / 2
+            canvas.paste(logo_image, (int(current_x), int(paste_y)), mask=logo_image)
+            current_x += logo_image.width + logo_spacing
+        return canvas.convert('RGB'), None
 
-                # Aplica filtro de cor se existir no override
-                if logo_overrides.get('color_filter'):
-                    logo_image = _apply_logo_color_filter(logo_image, logo_overrides['color_filter'])
-
-                bbox = logo_image.getbbox()
-                if bbox: logo_image = logo_image.crop(bbox)
-                
-                # Redimensiona o logo para caber na área definida
-                logo_area = rules.get('logo_area')
-                if logo_area:
-                    logo_image.thumbnail((logo_area['width'], logo_area['height']), Image.Resampling.LANCZOS)
-                
-                # Centraliza o logo no canvas
-                paste_x = (canvas_w - logo_image.width) // 2
-                paste_y = (canvas_h - logo_image.height) // 2
-                
-                final_canvas.paste(logo_image, (paste_x, paste_y), mask=logo_image)
-
-            except Exception as e:
-                logger.error(f"Erro ao aplicar logo no formato brand_logo: {e}")
-
-        return final_canvas.convert('RGB'), None
-    
-    elif rule_type == 'split_left_white':
+    elif fmt_config['name'] in ['HOME_PRIVATE', 'HOME_PRIVATE_PUBLIC']:
         logger.info(f"Processando formato especial 'split_left_white': {fmt_config['name']}")
         split_width = rules.get('split_width', 300)
-        final_canvas = Image.new('RGBA', (canvas_w, canvas_h), (255, 255, 255, 255))
-        image_area_w, image_area_h = canvas_w - split_width, canvas_h
-        image_canvas = Image.new('RGBA', (image_area_w, image_area_h))
+        canvas = Image.new('RGBA', (canvas_w, canvas_h), (255, 255, 255, 255))
+        image_canvas = Image.new('RGBA', (canvas_w - split_width, canvas_h))
         
         image_overrides = overrides.get('image')
         if image_overrides:
-            logger.info("Aplicando override de imagem manual ao layout split.")
             _apply_manual_image_override(image_canvas, original_image, image_overrides)
             composition_data = {'scale': image_overrides.get('zoom'), 'crop': image_overrides.get('crop')}
         else:
-            temp_fmt_config = {'width': image_area_w, 'height': image_area_h, 'rules': {'type': 'full_bleed'}}
-            composition_data = _apply_automatic_composition(image_canvas, original_image, analysis, temp_fmt_config)
+            temp_config = {'width': canvas_w - split_width, 'height': canvas_h, 'rules': {'type': 'full_bleed'}}
+            composition_data = _apply_automatic_composition(image_canvas, original_image, analysis, temp_config)
             
-        final_canvas.paste(image_canvas, (split_width, 0))
+        canvas.paste(image_canvas, (split_width, 0))
         
-        if logo_bytes:
-            try:
-                logo_image = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
-                if overrides.get('logo', {}).get('color_filter'):
-                    logo_image = _apply_logo_color_filter(logo_image, overrides['logo']['color_filter'])
+        if logos_data:
+            logo_overrides_list = overrides.get('logo', [])
+            current_y = rules.get('margin', {}).get('y', 40)
+            logo_spacing = 15
+
+            for i, logo_data in enumerate(logos_data):
+                logo_override = logo_overrides_list[i] if i < len(logo_overrides_list) else {}
+                logo_image = Image.open(io.BytesIO(logo_data['bytes'])).convert("RGBA")
+                if logo_override.get('color_filter'):
+                    logo_image = _apply_logo_color_filter(logo_image, logo_override['color_filter'])
+                
                 bbox = logo_image.getbbox()
-                if bbox: logo_image = logo_image.crop(bbox)
-                logo_area = rules.get('logo_area')
-                if logo_area: logo_image.thumbnail((logo_area['width'], logo_area['height']), Image.Resampling.LANCZOS)
-                paste_x = rules.get('margin', {}).get('x', 20)
-                paste_y = rules.get('margin', {}).get('y', 40)
-                final_canvas.paste(logo_image, (paste_x, paste_y), mask=logo_image)
-            except Exception as e:
-                logger.error(f"Erro ao aplicar logo no formato split: {e}")
+                if bbox:
+                    logo_image = logo_image.crop(bbox)
+                
+                target_width = logo_override.get('width', rules.get('logo_area', {}).get('width', 260))
+                aspect_ratio = logo_image.height / logo_image.width if logo_image.width > 0 else 1
+                target_height = int(target_width * aspect_ratio)
+                logo_image = logo_image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                
+                paste_x = int(logo_override.get('x', rules.get('margin', {}).get('x', 20)))
+                paste_y = int(logo_override.get('y', current_y))
+                
+                canvas.paste(logo_image, (paste_x, paste_y), mask=logo_image)
+                current_y = paste_y + logo_image.height + logo_spacing
         
-        return final_canvas.convert('RGB'), composition_data
+        return canvas.convert('RGB'), composition_data
 
-    background_override = overrides.get('background')
-    if background_override:
-        bg_type, bg_color_str = background_override.get('type'), background_override.get('color')
-        if bg_type == 'solid': canvas = Image.new('RGBA', (canvas_w, canvas_h), _parse_rgba_color(bg_color_str))
-        elif bg_type == 'gradient': canvas = _create_gradient_image(bg_color_str, canvas_w, canvas_h)
-    
-    if canvas is None: canvas = Image.new('RGBA', (canvas_w, canvas_h), (255, 255, 255, 255))
+    else:
+        # Lógica para todos os outros formatos (permanece a mesma)
+        canvas = Image.new('RGBA', (canvas_w, canvas_h), (255, 255, 255, 255))
+        background_override = overrides.get('background')
+        if background_override:
+            bg_type, bg_color = background_override.get('type'), background_override.get('color')
+            if bg_type == 'solid': canvas = Image.new('RGBA', (canvas_w, canvas_h), _parse_rgba_color(bg_color))
+            elif bg_type == 'gradient': canvas = _create_gradient_image(bg_color, canvas_w, canvas_h)
+        
+        if 'logo_only' not in rule_type and not background_override:
+            image_overrides = overrides.get('image')
+            if image_overrides: _apply_manual_image_override(canvas, original_image, image_overrides)
+            else: composition_data = _apply_automatic_composition(canvas, original_image, analysis, fmt_config)
 
-    if 'logo_only' not in rule_type and not background_override:
-        image_overrides = overrides.get('image')
-        if image_overrides:
-            logger.info("Aplicando override de imagem manual ao layout padrão.")
-            _apply_manual_image_override(canvas, original_image, image_overrides)
+        if fmt_config['name'] in ['SLOT1_NEXT_WEB', 'SLOT1_NEXT_WEB_PRE']:
+            canvas.paste(Image.new('RGBA', canvas.size, (0,0,0,191)), (0,0), mask=Image.new('RGBA', canvas.size, (0,0,0,191)))
 
-            composition_data = {'scale': image_overrides.get('zoom'), 'crop': image_overrides.get('crop')}
-        else:
-            composition_data = _apply_automatic_composition(canvas, original_image, analysis, fmt_config)
-
-    if fmt_config['name'] in ['SLOT1_NEXT_WEB', 'SLOT1_NEXT_WEB_PRE']:
-        canvas.paste(Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 191)), (0, 0), mask=Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 191)))
-    
-    final_logo_pos = None
-    final_logo_size = None
-
-    logo_overrides = overrides.get('logo')
-    if logo_bytes and rule_type not in ['full_bleed', 'logo_only_fill']:
-        try:
-            logo_image = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
-            if logo_overrides and logo_overrides.get('color_filter'):
-                logo_image = _apply_logo_color_filter(logo_image, logo_overrides['color_filter'])
-            bbox = logo_image.getbbox()
-            if bbox: logo_image = logo_image.crop(bbox)
-            
-            if logo_overrides:
-                logo_w = int(logo_overrides.get('width', 150))
-                logo_h = int(logo_image.height * logo_w / logo_image.width) if logo_image.width > 0 else 0
+        final_logo_pos, final_logo_size = None, None
+        if logos_data and rule_type not in ['full_bleed']:
+            logo_overrides_list = overrides.get('logo', [])
+            current_y = rules.get('margin', {}).get('y', 20)
+            logo_spacing = 15
+            for i, logo_data in enumerate(logos_data):
+                logo_override = logo_overrides_list[i] if i < len(logo_overrides_list) else {}
+                logo_image = Image.open(io.BytesIO(logo_data['bytes'])).convert("RGBA")
+                if logo_override.get('color_filter'): logo_image = _apply_logo_color_filter(logo_image, logo_override['color_filter'])
+                if logo_image.getbbox(): logo_image = logo_image.crop(logo_image.getbbox())
+                logo_w = int(logo_override.get('width', 150))
+                logo_h = int(logo_w * logo_image.height / logo_image.width) if logo_image.width > 0 else 0
                 logo_image.thumbnail((logo_w, logo_h), Image.Resampling.LANCZOS)
-                paste_position = (int(logo_overrides.get('x', 0)), int(logo_overrides.get('y', 0)))
-            else:
-                logo_area = rules.get('logo_area', {'width': canvas_w, 'height': canvas_h})
-                logo_image.thumbnail((logo_area['width'], logo_area['height']), Image.Resampling.LANCZOS)
-                if rule_type in ['logo_only_centered', 'centered_logo']:
-                    paste_position = (int((canvas_w - logo_image.width) / 2), int((canvas_h - logo_image.height) / 2))
-                else:
-                    margin = rules.get('margin', {'x': 20, 'y': 20})
-                    paste_position = (margin['x'], margin['y'])
-            
-            canvas.paste(logo_image, paste_position, mask=logo_image)
+                paste_x = int(logo_override.get('x', rules.get('margin', {}).get('x', 20)))
+                paste_y = int(logo_override.get('y', current_y))
+                canvas.paste(logo_image, (paste_x, paste_y), mask=logo_image)
+                if i == 0: final_logo_pos, final_logo_size = (paste_x, paste_y), logo_image.size
+                current_y = paste_y + logo_image.height + logo_spacing
+        
+        tagline_overrides = overrides.get('tagline')
+        if tagline_overrides and tagline_overrides.get('text'):
+            try:
+                text, font_filename, font_size = tagline_overrides['text'], tagline_overrides.get('font_filename', 'Montserrat-Regular.ttf'), tagline_overrides.get('font_size', 24)
+                font_color = tuple(_parse_rgba_color(tagline_overrides.get('color', '#000000')))
+                font = ImageFont.truetype(os.path.join("app/static/fonts", font_filename), font_size)
+                draw = ImageDraw.Draw(canvas)
+                if 'x' in tagline_overrides and 'y' in tagline_overrides: text_x, text_y = tagline_overrides['x'], tagline_overrides['y']
+                elif final_logo_pos and final_logo_size: text_x, text_y = final_logo_pos[0], final_logo_pos[1] + final_logo_size[1] + tagline_overrides.get('offset_y', 5)
+                else: text_x, text_y = 20, canvas_h - 40
+                draw.text((text_x, text_y), text, font=font, fill=font_color)
+            except Exception as e: logger.error(f"Erro ao renderizar tagline: {e}")
 
-            final_logo_pos = paste_position
-            final_logo_size = logo_image.size
-
-        except Exception as e:
-            logger.error(f"Erro ao aplicar logo para o formato '{fmt_config['name']}': {e}")
-    
-    if rule_type == 'logo_only_fill' and logo_bytes:
-
-        pass
-
-    tagline_overrides = overrides.get('tagline')
-    if tagline_overrides and tagline_overrides.get('text'):
-        try:
-            text = tagline_overrides['text']
-            font_filename = tagline_overrides.get('font_filename', 'Montserrat-Regular.ttf')
-            font_size = tagline_overrides.get('font_size', 24)
-            font_color = tuple(_parse_rgba_color(tagline_overrides.get('color', '#000000')))
-            font_path = os.path.join("app/static/fonts", font_filename)
-            font = ImageFont.truetype(font_path, font_size)
-            draw = ImageDraw.Draw(canvas)
-            
-            if 'x' in tagline_overrides and 'y' in tagline_overrides:
-                text_x, text_y = tagline_overrides['x'], tagline_overrides['y']
-            else:
-                if final_logo_pos and final_logo_size:
-                    logo_x, logo_y = final_logo_pos
-                    logo_w, logo_h = final_logo_size
-                    offset_y = tagline_overrides.get('offset_y', 5)
-                    text_y = logo_y + logo_h + offset_y
-
-                    exception_formats = ['SLOT1_NEXT_WEB.jpg', 'SLOT1_NEXT_WEB_PRE.jpg']
-                    if fmt_config['name'] in exception_formats:
-                        try:
-                            text_box = draw.textbbox((0, 0), text, font=font)
-                            text_width = text_box[2] - text_box[0]
-                        except AttributeError:
-                            text_width = draw.textlength(text, font=font)
-                        text_x = logo_x + (logo_w - text_width) / 2
-                    else:
-                        text_x = logo_x
-                else:
-                    text_x, text_y = 20, canvas_h - 40 
-            
-            draw.text((text_x, text_y), text, font=font, fill=font_color)
-
-        except Exception as e:
-            logger.error(f"Erro ao renderizar tagline: {e}")
-
-    final_image = canvas.convert('RGB')
-    return final_image, composition_data
+        return canvas.convert('RGB'), composition_data
 
 def compose_all_formats_assigned(
     files_bytes: dict, 
     assignments: dict, 
-    selected_folder: str,
-    selected_logo_filename: str,
+    selected_logos_list: list,
     overrides: dict = None
 ) -> dict[str, dict]:
-    if overrides is None:
-        overrides = {}
+    if overrides is None: overrides = {}
         
     analysis_A = ia_service.analyze(files_bytes['imageA'])
     analysis_B = ia_service.analyze(files_bytes['imageB'])
     images = {'imageA': Image.open(io.BytesIO(files_bytes['imageA'])), 'imageB': Image.open(io.BytesIO(files_bytes['imageB']))}
     analyses = {'imageA': analysis_A, 'imageB': analysis_B}
     
-    logo_folder_path = os.path.join(LOGOS_BASE_PATH, selected_folder)
-    available_logos = {}
-    try:
-        for filename in os.listdir(logo_folder_path):
-            if any(filename.lower().endswith(ext) for ext in ['.png', '.svg']):
-                with open(os.path.join(logo_folder_path, filename), "rb") as f:
-                    available_logos[filename] = f.read()
-    except Exception as e:
-         raise ValueError(f"Não foi possível ler os logos da pasta {selected_folder}: {e}")
-
-    if not available_logos:
-        raise ValueError(f"Nenhum logo válido (.png, .svg) encontrado na pasta {selected_folder}")
+    logos_to_process = []
+    for logo_info in selected_logos_list:
+        try:
+            logo_path = os.path.join(LOGOS_BASE_PATH, logo_info['folder'], logo_info['filename'])
+            with open(logo_path, "rb") as f:
+                logos_to_process.append({'bytes': f.read()})
+        except Exception as e:
+            logger.warning(f"Não foi possível ler o logo {logo_info['filename']}: {e}")
+            continue
+    
+    if not logos_to_process:
+        raise ValueError("Nenhum logo válido foi selecionado.")
 
     output_data = {}
     for fmt_config in FORMAT_CONFIG:
         format_name_with_ext = fmt_config['name'] + ".jpg"
         assigned_image_key = assignments.get(format_name_with_ext)
-        if not assigned_image_key:
-            continue
+        if not assigned_image_key: continue
             
         image_to_process = images[assigned_image_key]
         analysis_to_use = analyses[assigned_image_key]
         format_override = overrides.get(format_name_with_ext, {})
         
-        white_logo_candidates = ['white.png', 'branco.png', 'logo_white.png']
-        dark_logo_candidates = ['dark.png', 'preto.png', 'logo_dark.png', 'logo.png', 'logo_color.png']
-        
-        logo_bytes_to_use = None
-        if selected_logo_filename in available_logos:
-            logo_bytes_to_use = available_logos[selected_logo_filename]
-        else:
-            logo_placement_suggestion = ia_service.analyze_logo_placement_area(image_to_process, fmt_config)
-            if logo_placement_suggestion == 'light':
-                for name in white_logo_candidates:
-                    if name in available_logos:
-                        logo_bytes_to_use = available_logos[name]; break
-            elif logo_placement_suggestion == 'dark':
-                for name in dark_logo_candidates:
-                    if name in available_logos:
-                        logo_bytes_to_use = available_logos[name]; break
-            
-            if not logo_bytes_to_use and available_logos:
-                fallback_logo_name = list(available_logos.keys())[0]
-                logo_bytes_to_use = available_logos[fallback_logo_name]
-                logger.warning(f"Usando fallback de logo: '{fallback_logo_name}' para o formato '{fmt_config['name']}'")
-
         composed_image, composition_data = compose_single_format(
             image_to_process, 
             analysis_to_use, 
             fmt_config, 
-            logo_bytes_to_use,
+            logos_to_process,
             overrides=format_override
         )
         

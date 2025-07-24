@@ -36,18 +36,19 @@ export const getFormatsConfig = async () => {
     }
 };
 
-export const getPreviews = async (files, assignments, selectedFolder, selectedLogo, overrides = {}) => {
+export const getPreviews = async (files, assignments, selectedLogos, overrides = {}) => {
     const formData = new FormData();
     formData.append('imageA', files.imageA);
     formData.append('imageB', files.imageB);
-    formData.append('selected_folder', selectedFolder);
-    formData.append('selected_logo_filename', selectedLogo);
+    
+    // Transforma a lista de logos em uma string JSON
+    const logosForApi = selectedLogos.map(logo => ({ folder: logo.folder, filename: logo.filename }));
+    formData.append('selected_logos', JSON.stringify(logosForApi));
 
     const assignmentsJson = JSON.stringify(assignments);
     const assignmentsBlob = new Blob([assignmentsJson], { type: 'application/json' });
     formData.append('assignments', assignmentsBlob, 'assignments.json');
 
-    // Adiciona os overrides ao FormData para que o backend os receba
     const overridesJson = JSON.stringify(overrides);
     const overridesBlob = new Blob([overridesJson], { type: 'application/json' });
     formData.append('overrides', overridesBlob, 'overrides.json');
@@ -56,16 +57,14 @@ export const getPreviews = async (files, assignments, selectedFolder, selectedLo
     return response.data.previews;
 };
 
-export const getSinglePreview = async (formatName, imageFile, logoInfo, override) => {
+export const getSinglePreview = async (formatName, imageFile, logosInfo, override) => {
     const formData = new FormData();
     
-    formData.append('file', imageFile); // Corrigido
+    formData.append('file', imageFile);
     formData.append('format_name', formatName.replace('.jpg', ''));
-    formData.append('selected_folder', logoInfo.folder);
-    formData.append('selected_logo_filename', logoInfo.filename);
+    formData.append('selected_logos', JSON.stringify(logosInfo));
 
-    // O override deve ser para o formato específico.
-    const overrideJson = JSON.stringify({ [formatName]: override }); 
+    const overrideJson = JSON.stringify(override); 
     const overrideBlob = new Blob([overrideJson], { type: 'application/json' });
     formData.append('overrides', overrideBlob, 'overrides.json');
     

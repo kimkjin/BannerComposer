@@ -3,22 +3,21 @@
 import React from 'react';
 import ImageUploader from './ImageUploader';
 import SearchableDropdown from './SearchableDropdown';
-import './BriefingPanel.css'; // Vamos adicionar os novos estilos aqui depois
+import './BriefingPanel.css'; 
 
 function BriefingPanel({ 
     onFileSelect,
     onFolderSearch,
     onFolderSelect,
     logos, 
-    selectedLogo, 
-    onLogoSelect,
-    // --- NOVOS PROPS PARA A TAGLINE ---
+    selectedLogos, 
+    onAddLogo,
+    onRemoveLogo,
     taglineState,
     onTaglineStateChange,
     onFontSearch
 }) {
 
-  // Função para lidar com mudanças nos inputs da tagline de forma genérica
   const handleTaglineChange = (field, value) => {
     onTaglineStateChange({ ...taglineState, [field]: value });
   };
@@ -53,9 +52,9 @@ function BriefingPanel({
             {logos.map(logo => (
               <div 
                 key={logo.filename}
-                className={`logo-thumbnail ${selectedLogo === logo.filename ? 'selected' : ''}`}
-                onClick={() => onLogoSelect(logo.filename)}
-                title={`Selecionar: ${logo.filename}`}
+                className={`logo-thumbnail ${selectedLogos.some(l => l.filename === logo.filename) ? 'added' : ''}`}
+                onClick={() => onAddLogo(logo.filename)}
+                title={`Adicionar: ${logo.filename}`}
               >
                 <img src={logo.data} alt={logo.filename} />
               </div>
@@ -64,7 +63,30 @@ function BriefingPanel({
         )}
       </div>
 
-      {/* --- SEÇÃO DA TAGLINE (SUBSTITUINDO O TESTE DE IA) --- */}
+      {selectedLogos.length > 0 && (
+        <div className="panel-section selected-logos-area">
+            <h4>Logos da Campanha</h4>
+            <div className="selected-logos-list">
+                {selectedLogos.map((logo) => (
+                    <div key={`${logo.folder}-${logo.filename}`} className="selected-logo-item">
+                        <img src={logo.data} alt={logo.filename} />
+                        <div className="selected-logo-info">
+                            <span className="logo-filename">{logo.filename}</span>
+                            <span className="logo-folder">{logo.folder}</span>
+                        </div>
+                        <button 
+                            className="remove-logo-btn" 
+                            onClick={() => onRemoveLogo({filename: logo.filename, folder: logo.folder})}
+                            title="Remover logo"
+                        >
+                            ×
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+      )}
+
       <div className="panel-section tagline-section">
         <h3>
           <label className="tagline-main-label">
@@ -79,7 +101,7 @@ function BriefingPanel({
         
         {taglineState.enabled && (
           <div className="tagline-controls-wrapper">
-            <p>A tagline será adicionada abaixo do logo em todos os formatos aplicáveis.</p>
+            <p>A tagline será adicionada abaixo do primeiro logo.</p>
             <input 
               type="text"
               className="tagline-input"
@@ -94,24 +116,11 @@ function BriefingPanel({
             />
             <div className="inline-controls">
                 <label>Tam:</label>
-                <input 
-                  type="number"
-                  value={taglineState.font_size}
-                  onChange={(e) => handleTaglineChange('font_size', Number(e.target.value))}
-                />
+                <input type="number" value={taglineState.font_size} onChange={(e) => handleTaglineChange('font_size', Number(e.target.value))} />
                 <label>Cor:</label>
-                <input 
-                  type="color"
-                  value={taglineState.color}
-                  onChange={(e) => handleTaglineChange('color', e.target.value)}
-                />
+                <input type="color" value={taglineState.color} onChange={(e) => handleTaglineChange('color', e.target.value)} />
                 <label>Y:</label>
-                <input 
-                  type="number"
-                  title="Deslocamento Vertical (Y)"
-                  value={taglineState.offset_y}
-                  onChange={(e) => handleTaglineChange('offset_y', Number(e.target.value))}
-                />
+                <input type="number" title="Deslocamento Vertical (Y)" value={taglineState.offset_y} onChange={(e) => handleTaglineChange('offset_y', Number(e.target.value))} />
             </div>
           </div>
         )}

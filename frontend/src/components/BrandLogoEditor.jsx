@@ -4,85 +4,115 @@ import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
 import './BrandLogoEditor.css';
 
-function BrandLogoEditor({ format, preview, onClose, onSave }) {
-    const { rules, override } = preview;
+function BrandLogoEditor({ preview, onClose, onSave }) {
+    const { 
+        name: formatName,
+        rules, 
+        selectedLogos = [], 
+        logoOverrides = [] 
+    } = preview;
 
-    // Estados do Logo
-    const [logoPos, setLogoPos] = useState({ 
-        x: override?.logo?.x ?? (preview.width - (rules.logo_area?.width || 150)) / 2, 
-        y: override?.logo?.y ?? (preview.height - (rules.logo_area?.height || 55)) / 2
-    });
-    const [logoWidth, setLogoWidth] = useState(override?.logo?.width || rules.logo_area?.width || 150);
-    const [logoAspectRatio, setLogoAspectRatio] = useState(null);
-    const [logoColorFilter, setLogoColorFilter] = useState(override?.logo?.color_filter || 'none');
+    // NOVO: Estado para gerenciar múltiplos logos
+    const [logoStates, setLogoStates] = useState([]);
 
+    // Efeito de inicialização para carregar os dados dos logos
     useEffect(() => {
-        if (preview.logoData) {
+        const logoPromises = selectedLogos.map((logo, index) => new Promise(resolve => {
+            const override = logoOverrides[index] || {};
             const img = new Image();
-            img.src = preview.logoData;
-            img.onload = () => setLogoAspectRatio(img.naturalWidth / img.naturalHeight);
-        }
-    }, [preview.logoData]);
+            img.onload = () => {
+                const aspectRatio = img.naturalWidth / img.naturalHeight;
+                resolve({
+                    id: `${logo.folder}-${logo.filename}`,
+                    data: logo.data,
+                    aspectRatio: aspectRatio,
+                    x: override.x ?? (preview.width - (rules.logo_area?.width || 150)) / 2 + (index * 60), // Posição X inicial para visualização
+                    y: override.y ?? (preview.height - (rules.logo_area?.height || 55)) / 2,
+                    width: override.width ?? (rules.logo_area?.width || 150),
+                    colorFilter: override.color_filter ?? 'none',
+                });
+            };
+            img.src = logo.data;
+        }));
+        Promise.all(logoPromises).then(setLogoStates);
+    }, [preview]);
+
+    // Handler para atualizar um logo específico
+    const handleLogoChange = (index, newProps) => {
+        setLogoStates(currentStates =>
+            currentStates.map((state, i) => (i === index ? { ...state, ...newProps } : state))
+        );
+    };
 
     const handleSave = () => {
+        // Coleta os dados de todos os logos do estado
+        const finalLogoOverrides = logoStates.map(state => ({
+            x: Math.round(state.x),
+            y: Math.round(state.y),
+            width: Math.round(state.width),
+            height: Math.round(state.width / state.aspectRatio),
+            color_filter: state.colorFilter,
+        }));
+
         const saveData = {
             image: null,
             background: null,
-            logo: {
-                x: Math.round(logoPos.x),
-                y: Math.round(logoPos.y),
-                width: Math.round(logoWidth),
-                height: logoAspectRatio ? Math.round(logoWidth / logoAspectRatio) : 0,
-                color_filter: logoColorFilter,
-            },
-            tagline: null, // Garante que nenhuma tagline seja enviada
+            logo: finalLogoOverrides, // Envia um array de overrides
+            tagline: null,
         };
-        onSave(format, saveData);
+        onSave(formatName, saveData);
     };
-
-    const logoHeight = logoAspectRatio ? Math.round(logoWidth / logoAspectRatio) : 0;
 
     return (
         <div className="image-editor-overlay" onClick={onClose}>
             <div className="brand-logo-editor-content" onClick={e => e.stopPropagation()}>
-                <h3>Editando: {format.replace('.jpg', '')}</h3>
+                <h3>Editando: {formatName.replace('.jpg', '')}</h3>
                 
                 <div className="brand-logo-preview-panel" style={{ width: `${preview.width}px`, height: `${preview.height}px` }}>
-                    <Rnd
-                        className="logo-rnd-split"
-                        size={{ width: logoWidth, height: logoHeight }}
-                        position={{ x: logoPos.x, y: logoPos.y }}
-                        onDragStop={(_, d) => setLogoPos({ x: d.x, y: d.y })}
-                        onResizeStop={(_, __, ref, ___, pos) => {
-                            setLogoWidth(parseInt(ref.style.width, 10));
-                            setLogoPos(pos);
-                        }}
-                        bounds="parent"
-                        lockAspectRatio={logoAspectRatio}
-                    >
-                        <img
-                            src={preview.logoData}
-                            alt="Logo"
-                            className={`logo-image logo-filter-${logoColorFilter}`}
-                        />
-                    </Rnd>
+                    {/* Renderiza um Rnd para cada logo */}
+                    {logoStates.map((state, index) => (
+                        <Rnd
+                            key={state.id}
+                            className="logo-rnd-split"
+                            size={{ width: state.width, height: state.width / state.aspectRatio }}
+                            position={{ x: state.x, y: state.y }}
+                            onDragStop={(_, d) => handleLogoChange(index, { x: d.x, y: d.y })}
+                            onResizeStop={(_, __, ref, ___, pos) => {
+                                handleLogoChange(index, { width: parseInt(ref.style.width, 10), x: pos.x, y: pos.y });
+                            }}
+                            bounds="parent"
+                            lockAspectRatio={state.aspectRatio}
+                        >
+                            <img
+                                src={state.data}
+                                alt="Logo"
+                                className={`logo-image logo-filter-${state.colorFilter}`}
+                            />
+                        </Rnd>
+                    ))}
                 </div>
 
                 <div className="brand-logo-controls">
-                    <div className="control-group">
-                        <label>Largura Logo (px):</label>
-                        <input
-                            type="number"
-                            className="size-input"
-                            value={Math.round(logoWidth)}
-                            onChange={e => setLogoWidth(parseInt(e.target.value, 10) || 0)}
-                        />
-                    </div>
-                    <div className="logo-filter-buttons">
-                        <button className={logoColorFilter === 'none' ? 'active' : ''} onClick={() => setLogoColorFilter('none')}>Original</button>
-                        <button className={logoColorFilter === 'white' ? 'active' : ''} onClick={() => setLogoColorFilter('white')}>Branco</button>
-                        <button className={logoColorFilter === 'black' ? 'active' : ''} onClick={() => setLogoColorFilter('black')}>Preto</button>
-                    </div>
+                    {/* Renderiza controles para cada logo */}
+                    {logoStates.map((state, index) => (
+                         <div className="control-section" key={state.id} style={{ borderBottom: '1px solid #eee', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                            <h4>Logo {index + 1}</h4>
+                            <div className="control-group">
+                                <label>Largura (px):</label>
+                                <input
+                                    type="number"
+                                    className="size-input"
+                                    value={Math.round(state.width)}
+                                    onChange={e => handleLogoChange(index, { width: parseInt(e.target.value, 10) || 0 })}
+                                />
+                            </div>
+                            <div className="logo-filter-buttons">
+                                <button className={state.colorFilter === 'none' ? 'active' : ''} onClick={() => handleLogoChange(index, { colorFilter: 'none' })}>Original</button>
+                                <button className={state.colorFilter === 'white' ? 'active' : ''} onClick={() => handleLogoChange(index, { colorFilter: 'white' })}>Branco</button>
+                                <button className={state.colorFilter === 'black' ? 'active' : ''} onClick={() => handleLogoChange(index, { colorFilter: 'black' })}>Preto</button>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 <div className="editor-actions">

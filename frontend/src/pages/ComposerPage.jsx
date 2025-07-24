@@ -1,16 +1,11 @@
-// frontend/src/pages/ComposerPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import {
     getFormatsConfig,
     getPreviews,
-    getRecognitionTest,
-    processAndDownloadZip,
-    logErrorToServer,
+    getSinglePreview,
     listLogoFolders,
     listLogosInFolder,
-    getSinglePreview,
-    listFonts // Importa a função de busca de fontes
+    listFonts
 } from '../api/composerApi';
 import BriefingPanel from '../components/BriefingPanel';
 import PreviewGrid from '../components/PreviewGrid';
@@ -29,19 +24,12 @@ function ComposerPage() {
     const [assignments, setAssignments] = useState({});
     const [selectedFolder, setSelectedFolder] = useState('');
     const [logos, setLogos] = useState([]);
-    const [selectedLogo, setSelectedLogo] = useState(null);
+    const [selectedLogos, setSelectedLogos] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [editingFormat, setEditingFormat] = useState(null);
     const [manualOverrides, setManualOverrides] = useState({});
-
-    // Novo estado para gerenciar a tagline globalmente
     const [taglineState, setTaglineState] = useState({
-        enabled: false,
-        text: '',
-        font_filename: 'Montserrat-Regular.ttf', // Um padrão seguro
-        font_size: 24,
-        color: '#000000',
-        offset_y: 10,
+        enabled: false, text: '', font_filename: 'Montserrat-Regular.ttf', font_size: 24, color: '#000000', offset_y: 10,
     });
 
     useEffect(() => {
@@ -71,12 +59,7 @@ function ComposerPage() {
                 try {
                     const logosData = await listLogosInFolder(selectedFolder);
                     setLogos(logosData.logos);
-                    if (logosData.logos.length > 0) {
-                        setSelectedLogo(logosData.logos[0].filename);
-                    } else {
-                        setSelectedLogo(null);
-                    }
-                    setStatusMessage("Logos carregados. Selecione um para continuar.");
+                    setStatusMessage("Logos carregados. Selecione para adicionar à campanha.");
                 } catch (error) {
                     console.error(`Erro ao buscar logos de ${selectedFolder}:`, error);
                 } finally {
@@ -86,17 +69,11 @@ function ComposerPage() {
             fetchLogos();
         } else {
             setLogos([]);
-            setSelectedLogo(null);
         }
     }, [selectedFolder]);
 
-    const handleFileSelect = (file, imageId) => {
-        setFiles(prev => ({ ...prev, [imageId]: file }));
-    };
-
-    const handleAssignmentChange = (formatName, imageId) => {
-        setAssignments(prev => ({ ...prev, [formatName]: imageId }));
-    };
+    const handleFileSelect = (file, imageId) => setFiles(prev => ({ ...prev, [imageId]: file }));
+    const handleAssignmentChange = (formatName, imageId) => setAssignments(prev => ({ ...prev, [formatName]: imageId }));
 
     const handleAssignAll = (imageId) => {
         if (!files[imageId]) {
@@ -117,7 +94,7 @@ function ComposerPage() {
             return [];
         }
     };
-
+    
     const handleFontSearch = async (query) => {
         try {
             const data = await listFonts(query);
@@ -127,15 +104,34 @@ function ComposerPage() {
             return [];
         }
     };
+
+    const handleAddLogo = (logoFilename) => {
+        const logoDataFromGallery = logos.find(l => l.filename === logoFilename);
+        const isAlreadyAdded = selectedLogos.some(
+            l => l.filename === logoFilename && l.folder === selectedFolder
+        );
+
+        if (logoDataFromGallery && !isAlreadyAdded) {
+            const newLogoToAdd = {
+                folder: selectedFolder,
+                filename: logoDataFromGallery.filename,
+                data: logoDataFromGallery.data
+            };
+            setSelectedLogos(prev => [...prev, newLogoToAdd]);
+        }
+    };
+    
+    const handleRemoveLogo = (logoToRemove) => {
+        setSelectedLogos(prev => prev.filter(l => !(l.filename === logoToRemove.filename && l.folder === logoToRemove.folder)));
+    };
     
     const handleStartEditing = (formatName, assignedImageId) => {
         const previewData = previews[formatName];
         const originalImageFile = files[assignedImageId];
-        const selectedLogoData = logos.find(l => l.filename === selectedLogo);
         const formatConfig = formatsConfig.find(f => `${f.name}.jpg` === formatName);
-        const existingOverride = manualOverrides[formatName] || null;
+        const existingOverride = manualOverrides[formatName] || {};
 
-        if (previewData && originalImageFile && selectedLogoData && formatConfig) {
+        if (previewData && originalImageFile && formatConfig && selectedLogos.length > 0) {
             const reader = new FileReader();
             reader.readAsDataURL(originalImageFile);
             reader.onloadend = () => {
@@ -145,14 +141,15 @@ function ComposerPage() {
                     width: previewData.width,
                     height: previewData.height,
                     originalImageB64: base64Image,
-                    logoData: selectedLogoData.data,
-                    override: existingOverride,
+                    selectedLogos: selectedLogos,
+                    logoOverrides: existingOverride.logo || [],
+                    imageOverride: existingOverride.image || null,
                     rules: formatConfig.rules
                 });
                 setIsEditing(true);
             };
         } else {
-            alert("Não foi possível carregar os dados para edição.");
+            alert("Gere a pré-visualização primeiro.");
         }
     };
 
@@ -162,19 +159,19 @@ function ComposerPage() {
     };
 
     const handleSaveEdit = async (formatName, saveData) => {
+        // (Esta função foi atualizada na resposta anterior e está correta)
         const newOverrides = { ...manualOverrides, [formatName]: saveData };
         setManualOverrides(newOverrides);
         
-        setStatusMessage(`Atualizando a pré-visualização de ${formatName}...`);
+        setStatusMessage(`Atualizando ${formatName}...`);
         setIsLoading(true);
         handleCloseEditor();
 
         try {
             const assignedImageId = assignments[formatName];
             const imageFile = files[assignedImageId];
-            const logoInfo = { folder: selectedFolder, filename: selectedLogo };
-
-            const imageBlob = await getSinglePreview(formatName, imageFile, logoInfo, saveData);
+            const logosInfoForApi = selectedLogos.map(l => ({ folder: l.folder, filename: l.filename }));
+            const imageBlob = await getSinglePreview(formatName, imageFile, logosInfoForApi, saveData);
             const reader = new FileReader();
             reader.readAsDataURL(imageBlob);
             reader.onloadend = () => {
@@ -184,53 +181,55 @@ function ComposerPage() {
                     [formatName]: { ...prev[formatName], data: base64data, composition_data: saveData }
                 }));
             };
-            setStatusMessage("Pré-visualização atualizada com sucesso!");
+            setStatusMessage("Pré-visualização atualizada!");
         } catch (error) {
-            console.error(`Erro ao atualizar a preview de ${formatName}:`, error);
-            setStatusMessage("Erro ao atualizar a preview.");
+            console.error(`Erro ao atualizar preview:`, error);
+            setStatusMessage("Erro ao atualizar preview.");
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleGeneratePreviews = async () => {
-        if (!files.imageA || !files.imageB || !selectedLogo) {
-            alert("Por favor, suba ambas as imagens e selecione uma marca/logo.");
+        if (!files.imageA || !files.imageB || selectedLogos.length === 0) {
+            alert("Por favor, suba ambas as imagens e selecione pelo menos um logo.");
             return;
         }
-
-        const overridesForGeneration = { ...manualOverrides };
-        if (taglineState.enabled && taglineState.text) {
-            for (const formatName of FORMAT_ORDER) {
-                overridesForGeneration[formatName] = {
-                    ...overridesForGeneration[formatName],
-                    tagline: { ...taglineState }
-                };
-            }
-        }
         
+        const overridesForGeneration = {};
+        if (taglineState.enabled && taglineState.text) {
+            FORMAT_ORDER.forEach(formatName => {
+                overridesForGeneration[formatName] = { tagline: { ...taglineState } };
+            });
+        }
+
         setIsLoading(true);
         setStatusMessage("Gerando pré-visualizações...");
         setPreviews({});
 
         try {
-            const previewData = await getPreviews(files, assignments, selectedFolder, selectedLogo, overridesForGeneration);
+            const previewData = await getPreviews(
+                files, 
+                assignments, 
+                selectedLogos, 
+                overridesForGeneration
+            );
             setPreviews(previewData);
             setManualOverrides(overridesForGeneration);
             setStatusMessage("Pré-visualizações geradas com sucesso!");
         } catch (error) {
-            console.error("Falha ao gerar as pré-visualizações:", error);
             setStatusMessage("Erro ao gerar previews.");
+            console.error("Falha ao gerar as pré-visualizações:", error);
         } finally {
             setIsLoading(false);
         }
     };
-    
+
     const handleDownloadZip = async () => {
         alert("Função de Download ainda não implementada.");
     };
 
-    const canGenerate = files.imageA && files.imageB && selectedLogo;
+    const canGenerate = files.imageA && files.imageB && selectedLogos.length > 0;
 
     return (
         <div className="composer-page">
@@ -239,36 +238,37 @@ function ComposerPage() {
                 onFolderSearch={handleFolderSearch}
                 onFolderSelect={setSelectedFolder}
                 logos={logos}
-                selectedLogo={selectedLogo}
-                onLogoSelect={setSelectedLogo}
+                selectedLogos={selectedLogos}
+                onAddLogo={handleAddLogo}
+                onRemoveLogo={handleRemoveLogo}
                 taglineState={taglineState}
                 onTaglineStateChange={setTaglineState}
                 onFontSearch={handleFontSearch}
             />
 
-            {isEditing && editingFormat && (
-                (() => {
-                    const formatsForSplitLayout = ['HOME_PRIVATE.jpg', 'HOME_PRIVATE_PUBLIC.jpg'];
+            {/* --- LÓGICA DE SELEÇÃO DE EDITOR RESTAURADA --- */}
+            {isEditing && editingFormat && (() => {
+                const formatsForSplitLayout = ['HOME_PRIVATE.jpg', 'HOME_PRIVATE_PUBLIC.jpg'];
+                
+                // Os props são definidos SEM a key
+                const editorProps = {
+                    preview: editingFormat,
+                    onClose: handleCloseEditor,
+                    onSave: handleSaveEdit,
+                    globalTaglineState: taglineState,
+                };
 
-                    const editorProps = {
-                        format: editingFormat.name,
-                        preview: editingFormat,
-                        onClose: handleCloseEditor,
-                        onSave: handleSaveEdit,
-                        globalTaglineState: taglineState,
-                    };
-
-                    if (formatsForSplitLayout.includes(editingFormat.name)) {
-                        return <SplitLayoutEditor key={editingFormat.name} {...editorProps} />;
-                    } 
-                    else if (editingFormat.name === 'BRAND_LOGO.jpg') {
-                        return <BrandLogoEditor key={editingFormat.name} {...editorProps} />;
-                    } 
-                    else {
-                        return <ImageEditorModal key={editingFormat.name} {...editorProps} />;
-                    }
-                })()
-            )}
+                // A key é passada DIRETAMENTE no componente JSX
+                if (formatsForSplitLayout.includes(editingFormat.name)) {
+                    return <SplitLayoutEditor key={editingFormat.name} {...editorProps} />;
+                } 
+                else if (editingFormat.name === 'BRAND_LOGO.jpg') {
+                    return <BrandLogoEditor key={editingFormat.name} {...editorProps} />;
+                } 
+                else {
+                    return <ImageEditorModal key={editingFormat.name} {...editorProps} />;
+                }
+            })()}
             
             <main className="preview-area">
                 <div className="preview-header">
@@ -281,7 +281,7 @@ function ComposerPage() {
                         className={`action-button process`}
                         onClick={handleGeneratePreviews} 
                         disabled={!canGenerate || isLoading}
-                        title={!canGenerate ? "Suba ambas as imagens e selecione um logo" : "Gerar pré-visualizações"}
+                        title={!canGenerate ? "Suba as imagens e selecione ao menos um logo" : "Gerar pré-visualizações"}
                     >
                         {isLoading ? 'Processando...' : 'Gerar Pré-visualizações'}
                     </button>
