@@ -1,3 +1,5 @@
+// frontend/src/components/SlotCard.jsx
+
 import React from 'react';
 import './SlotCard.css';
 
@@ -8,53 +10,51 @@ function SlotCard({
   assignment, 
   onAssignmentChange, 
   onTestRecognition, 
-  onStartEdit // <-- Novo prop para iniciar a edição
+  onStartEdit
 }) {
   const displayName = name.replace('.jpg', '').replace(/_/g, ' ');
-
   const b64Data = imageData?.data;
 
+  // Identifica o formato especial
+  const isSpecialComposite = name === 'ENTREGA.jpg';
+
   const handleTestClick = () => {
-    if (!assignment) {
-      alert(`Por favor, atribua a imagem A ou B a este formato antes de testar.`);
-      return;
-    }
+    if (!assignment) return;
     onTestRecognition(name, assignment); 
   };
 
-  // Nova função para acionar o modal de edição no componente pai
   const handleEditClick = () => {
-    // Só permite editar se a imagem já foi gerada e um 'assignment' existe
     if (imageData && assignment) {
       onStartEdit(name, assignment);
-    } else {
-      alert("Atribua e gere a preview antes de editar.");
     }
   };
 
   return (
-    <div className={`slot-card ${assignment ? `assigned-${assignment}` : ''}`}>
+    <div className={`slot-card ${assignment ? `assigned-${assignment}` : ''} ${isSpecialComposite ? 'special-composite' : ''}`}>
       <div className="slot-card-header">
         <h4>{displayName}</h4>
-        <div className="assignment-buttons">
-          <button
-            onClick={() => onAssignmentChange(name, 'imageA')}
-            className={`assign-btn a-btn ${assignment === 'imageA' ? 'active' : ''}`}
-            aria-label="Atribuir à Imagem A"
-            disabled={isLoading}
-          >A</button>
-          <button
-            onClick={() => onAssignmentChange(name, 'imageB')}
-            className={`assign-btn b-btn ${assignment === 'imageB' ? 'active' : ''}`}
-            aria-label="Atribuir à Imagem B"
-            disabled={isLoading}
-          >B</button>
-        </div>
+        
+        {/* --- MUDANÇA: Renderiza os botões A/B apenas se NÃO for o formato especial --- */}
+        {!isSpecialComposite && (
+          <div className="assignment-buttons">
+            <button
+              onClick={() => onAssignmentChange(name, 'imageA')}
+              className={`assign-btn a-btn ${assignment === 'imageA' ? 'active' : ''}`}
+              aria-label="Atribuir à Imagem A"
+              disabled={isLoading}
+            >A</button>
+            <button
+              onClick={() => onAssignmentChange(name, 'imageB')}
+              className={`assign-btn b-btn ${assignment === 'imageB' ? 'active' : ''}`}
+              aria-label="Atribuir à Imagem B"
+              disabled={isLoading}
+            >B</button>
+          </div>
+        )}
       </div>
 
       <div className="slot-preview-container">
-        {/* Adiciona o botão de edição que aparece no hover */}
-        {b64Data && !isLoading && (
+        {b64Data && !isLoading && !isSpecialComposite && (
           <button className="edit-button" onClick={handleEditClick} title="Editar posicionamento e logo">
             Editar
           </button>
@@ -69,14 +69,17 @@ function SlotCard({
         )}
       </div>
 
-      <button 
-        className="slot-test-btn" 
-        onClick={handleTestClick}
-        disabled={isLoading || !assignment}
-        title={!assignment ? "Atribua uma imagem primeiro" : "Testar reconhecimento e layout"}
-      >
-        Testar Layout
-      </button>
+      {/* --- MUDANÇA: Renderiza o botão de teste apenas se NÃO for o formato especial --- */}
+      {!isSpecialComposite && (
+        <button 
+          className="slot-test-btn" 
+          onClick={handleTestClick}
+          disabled={isLoading || !assignment}
+          title={!assignment ? "Atribua uma imagem primeiro" : "Testar reconhecimento e layout"}
+        >
+          Testar Layout
+        </button>
+      )}
     </div>
   );
 }

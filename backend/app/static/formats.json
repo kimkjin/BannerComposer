@@ -125,6 +125,12 @@
         "type": "logo_only_centered_white_bg",
         "logo_area": {"width": 150, "height": 55}
       } 
+    },
+    {
+      "name": "ENTREGA", "width": 980, "height": 1197, 
+      "rules": { 
+        "type": "special_composite"
+      } 
     }
   ]
 }

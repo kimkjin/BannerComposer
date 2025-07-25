@@ -30,6 +30,8 @@ except Exception as e:
     FORMAT_CONFIG = []
 
 LOGOS_BASE_PATH = "app/static/logos"
+FONTS_BASE_PATH = "app/static/fonts"
+PRIVALIA_LOGO_PATH = "app/static/logo-privalia/logo.png"
 
 
 def _parse_rgba_color(color_string):
@@ -154,6 +156,75 @@ def _apply_automatic_composition(canvas: Image.Image, original_image: Image.Imag
     paste_y = max(top_bound, min(paste_y, bottom_bound))
     canvas.paste(resized_image, (paste_x, paste_y))
     return composition_data
+
+def _create_entrega_format(generated_images: dict, formats_config: dict) -> bytes:
+    CANVAS_WIDTH = 980
+    CANVAS_HEIGHT = 1197
+    MARGIN = 20
+    GAP = 20
+    TEXT_COLOR = (80, 80, 80)
+    LINE_COLOR = (230, 230, 230)
+    
+    try:
+        font_path = os.path.join(FONTS_BASE_PATH, "arial.ttf")
+        font_label = ImageFont.truetype(font_path, 20)
+        font_section = ImageFont.truetype(font_path, 24)
+    except IOError:
+        logger.warning("Fonte Montserrat não encontrada, usando fonte padrão.")
+        font_label = ImageFont.load_default()
+        font_section = ImageFont.load_default()
+
+    entrega_canvas = Image.new('RGB', (CANVAS_WIDTH, CANVAS_HEIGHT), (255, 255, 255))
+    draw = ImageDraw.Draw(entrega_canvas)
+
+    def get_placeholder(width, height, text="Não gerado"):
+        placeholder = Image.new('RGB', (width, height), (240, 240, 240))
+        d = ImageDraw.Draw(placeholder)
+        d.text((10, 10), text, fill=(150, 150, 150), font=font_label)
+        return placeholder
+
+    slot1_bytes = generated_images.get('SLOT1_WEB.jpg', {}).get('image_bytes')
+    showroom_bytes = generated_images.get('SHOWROOM_MOBILE.jpg', {}).get('image_bytes')
+    home_bytes = generated_images.get('HOME_PRIVATE.jpg', {}).get('image_bytes')
+    
+    slot1_dim = formats_config.get('SLOT1_WEB', {'width': 300, 'height': 220})
+    showroom_dim = formats_config.get('SHOWROOM_MOBILE', {'width': 1080, 'height': 445})
+    home_dim = formats_config.get('HOME_PRIVATE', {'width': 940, 'height': 530})
+
+    img_slot1 = Image.open(io.BytesIO(slot1_bytes)) if slot1_bytes else get_placeholder(slot1_dim['width'], slot1_dim['height'])
+    img_showroom = Image.open(io.BytesIO(showroom_bytes)) if showroom_bytes else get_placeholder(showroom_dim['width'], showroom_dim['height'])
+    img_home = Image.open(io.BytesIO(home_bytes)) if home_bytes else get_placeholder(home_dim['width'], home_dim['height'])
+
+    current_y = MARGIN
+    try:
+        logo_privalia = Image.open(PRIVALIA_LOGO_PATH).convert("RGBA")
+        logo_privalia.thumbnail((200, 60), Image.Resampling.LANCZOS)
+        logo_x = (CANVAS_WIDTH - logo_privalia.width) // 2
+        entrega_canvas.paste(logo_privalia, (logo_x, current_y), logo_privalia)
+        current_y += logo_privalia.height + GAP
+    except FileNotFoundError:
+        logger.error(f"Logo da Privalia não encontrado em: {PRIVALIA_LOGO_PATH}")
+        current_y += 60 + GAP
+
+    draw.text((MARGIN, current_y), "Slot 1", fill=TEXT_COLOR, font=font_label)
+    draw.text((MARGIN + slot1_dim['width'] + GAP, current_y), "Showroom Mobile", fill=TEXT_COLOR, font=font_label)
+    current_y += 30
+
+    entrega_canvas.paste(img_slot1, (MARGIN, current_y))
+    entrega_canvas.paste(img_showroom, (MARGIN + slot1_dim['width'] + GAP, current_y))
+    current_y += showroom_dim['height'] + GAP
+
+    draw.line([(MARGIN, current_y), (CANVAS_WIDTH - MARGIN, current_y)], fill=LINE_COLOR, width=1)
+    current_y += GAP
+
+    draw.text((MARGIN, current_y), "Home", fill=TEXT_COLOR, font=font_section)
+    current_y += 40
+
+    entrega_canvas.paste(img_home, (MARGIN, current_y))
+
+    buffer = io.BytesIO()
+    entrega_canvas.save(buffer, format='JPEG', quality=95)
+    return buffer.getvalue()
 
 def compose_single_format(original_image: Image.Image, analysis: dict, fmt_config: dict, 
                           logos_data: list, overrides: dict = None) -> tuple[Image.Image, dict | None]:
@@ -298,19 +369,20 @@ def compose_all_formats_assigned(
     logos_to_process = []
     for logo_info in selected_logos_list:
         try:
-            logo_path = os.path.join(LOGOS_BASE_PATH, logo_info['folder'], logo_info['filename'])
-            with open(logo_path, "rb") as f:
+            with open(os.path.join(LOGOS_BASE_PATH, logo_info['folder'], logo_info['filename']), "rb") as f:
                 logos_to_process.append({'bytes': f.read()})
         except Exception as e:
             logger.warning(f"Não foi possível ler o logo {logo_info['filename']}: {e}")
             continue
     
-    if not logos_to_process:
-        raise ValueError("Nenhum logo válido foi selecionado.")
-
     output_data = {}
+    
+    # Gera todos os formatos, exceto o ENTREGA
     for fmt_config in FORMAT_CONFIG:
         format_name_with_ext = fmt_config['name'] + ".jpg"
+        if fmt_config['name'] == 'ENTREGA':
+            continue
+
         assigned_image_key = assignments.get(format_name_with_ext)
         if not assigned_image_key: continue
             
@@ -333,5 +405,19 @@ def compose_all_formats_assigned(
             "image_bytes": buffer.getvalue(),
             "composition_data": composition_data
         }
+
+    componentes_necessarios = ['SLOT1_WEB.jpg', 'SHOWROOM_MOBILE.jpg', 'HOME_PRIVATE.jpg']
+    if all(comp in output_data for comp in componentes_necessarios):
+        logger.info("Todos os componentes para 'ENTREGA' foram gerados. Montando o formato composto...")
+        try:
+            entrega_bytes = _create_entrega_format(output_data, formats_map)
+            output_data['ENTREGA.jpg'] = {
+                "image_bytes": entrega_bytes,
+                "composition_data": None
+            }
+        except Exception as e:
+            logger.error(f"Falha ao criar o formato ENTREGA: {e}", exc_info=True)
+    else:
+        logger.warning("Não foi possível gerar 'ENTREGA' pois um ou mais de seus componentes não foram gerados.")
 
     return output_data

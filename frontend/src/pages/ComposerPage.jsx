@@ -5,7 +5,8 @@ import {
     getSinglePreview,
     listLogoFolders,
     listLogosInFolder,
-    listFonts
+    listFonts,
+    getEntregaPreview
 } from '../api/composerApi';
 import BriefingPanel from '../components/BriefingPanel';
 import PreviewGrid from '../components/PreviewGrid';
@@ -170,17 +171,54 @@ function ComposerPage() {
             const assignedImageId = assignments[formatName];
             const imageFile = files[assignedImageId];
             const logosInfoForApi = selectedLogos.map(l => ({ folder: l.folder, filename: l.filename }));
+            
+            // 1. Gera o preview do formato que foi editado
             const imageBlob = await getSinglePreview(formatName, imageFile, logosInfoForApi, saveData);
             const reader = new FileReader();
             reader.readAsDataURL(imageBlob);
             reader.onloadend = () => {
                 const base64data = reader.result.split(',')[1];
-                setPreviews(prev => ({
-                    ...prev,
-                    [formatName]: { ...prev[formatName], data: base64data, composition_data: saveData }
-                }));
+                
+                // Cria um objeto com o estado atualizado dos previews
+                const nextPreviewsState = {
+                    ...previews,
+                    [formatName]: { ...previews[formatName], data: base64data, composition_data: saveData }
+                };
+
+                // Atualiza o estado com o preview que acabou de ser editado
+                setPreviews(nextPreviewsState);
+                
+                // 2. Verifica se o formato editado é um componente do ENTREGA
+                const entregaDependencies = ['SLOT1_WEB.jpg', 'SHOWROOM_MOBILE.jpg', 'HOME_PRIVATE.jpg'];
+                if (entregaDependencies.includes(formatName)) {
+                    // Garante que todos os componentes necessários existem antes de prosseguir
+                    if (entregaDependencies.every(dep => nextPreviewsState[dep]?.data)) {
+                        setStatusMessage("Atualizando o formato de Entrega...");
+                        
+                        // 3. Pede ao backend para gerar o novo ENTREGA
+                        getEntregaPreview(nextPreviewsState).then(entregaBlob => {
+                            const entregaReader = new FileReader();
+                            entregaReader.readAsDataURL(entregaBlob);
+                            entregaReader.onloadend = () => {
+                                const entregaBase64 = entregaReader.result.split(',')[1];
+                                // 4. Atualiza o estado do preview do ENTREGA
+                                setPreviews(prev => ({
+                                    ...prev,
+                                    'ENTREGA.jpg': { ...prev['ENTREGA.jpg'], data: entregaBase64 }
+                                }));
+                                setStatusMessage("Pré-visualizações atualizadas!");
+                            };
+                        }).catch(error => {
+                            console.error("Falha ao atualizar o preview de Entrega.", error);
+                            setStatusMessage("Pré-visualização atualizada, mas falhou ao gerar 'Entrega'.");
+                        });
+                    } else {
+                         setStatusMessage("Pré-visualização atualizada!");
+                    }
+                } else {
+                    setStatusMessage("Pré-visualização atualizada!");
+                }
             };
-            setStatusMessage("Pré-visualização atualizada!");
         } catch (error) {
             console.error(`Erro ao atualizar preview:`, error);
             setStatusMessage("Erro ao atualizar preview.");

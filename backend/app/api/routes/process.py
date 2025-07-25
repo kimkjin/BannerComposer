@@ -4,6 +4,7 @@ import logging
 import os
 from PIL import Image
 import io
+from pydantic import BaseModel
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Response 
 from ...services import composition_service, ia_service
 from ...models.schemas import ClientLog
@@ -13,7 +14,12 @@ from ...services.composition_service import FORMAT_CONFIG
 router = APIRouter()
 logger = logging.getLogger(__name__)
 LOGOS_BASE_PATH = "app/static/logos"
-FONTS_BASE_PATH = "app/static/fonts" # Constante para a pasta de fontes
+FONTS_BASE_PATH = "app/static/fonts" 
+
+class EntregaPayload(BaseModel):
+    slot1_web_jpg: str
+    showroom_mobile_jpg: str
+    home_private_jpg: str
 
 @router.post("/log-client-error")
 async def log_client_error(log: ClientLog):
@@ -24,6 +30,31 @@ async def log_client_error(log: ClientLog):
     logger.error(f"Component Stack: \n{log.componentStack}")
     logger.error(f"--- FIM DO ERRO DO CLIENTE ---")
     return {"status": "log received"}
+
+@router.post("/generate-entrega-preview")
+async def generate_entrega_preview(payload: EntregaPayload):
+    """
+    Recebe os componentes em base64 e gera apenas o formato ENTREGA.
+    """
+    try:
+        # Converte os dados base64 recebidos em bytes de imagem
+        generated_images = {
+            'SLOT1_WEB.jpg': {'image_bytes': base64.b64decode(payload.slot1_web_jpg)},
+            'SHOWROOM_MOBILE.jpg': {'image_bytes': base64.b64decode(payload.showroom_mobile_jpg)},
+            'HOME_PRIVATE.jpg': {'image_bytes': base64.b64decode(payload.home_private_jpg)}
+        }
+        
+        # Obtém o mapa de configurações de formato
+        formats_map = {fmt['name']: fmt for fmt in composition_service.FORMAT_CONFIG}
+
+        # Chama a função existente que monta o layout
+        entrega_bytes = composition_service._create_entrega_format(generated_images, formats_map)
+        
+        return Response(content=entrega_bytes, media_type="image/jpeg")
+
+    except Exception as e:
+        logger.error(f"Erro na rota /generate-entrega-preview: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro interno ao gerar o preview de entrega: {str(e)}")
 
 @router.get("/get-formats-config")
 async def get_formats_config():

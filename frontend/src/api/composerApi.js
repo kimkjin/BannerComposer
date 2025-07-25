@@ -134,3 +134,21 @@ export const listFonts = async (query = '') => {
         return { fonts: [] };
     }
 };
+
+export const getEntregaPreview = async (previews) => {
+    try {
+        // Monta o payload com os dados base64 dos componentes
+        const payload = {
+            'slot1_web_jpg': previews['SLOT1_WEB.jpg'].data,
+            'showroom_mobile_jpg': previews['SHOWROOM_MOBILE.jpg'].data,
+            'home_private_jpg': previews['HOME_PRIVATE.jpg'].data,
+        };
+        const response = await apiClient.post('/generate-entrega-preview', payload, {
+            responseType: 'blob',
+        });
+        return response.data;
+    } catch (error) {
+        console.error("API Error: Falha ao gerar o preview de Entrega", error);
+        throw error;
+    }
+};

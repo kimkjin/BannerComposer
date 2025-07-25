@@ -16,7 +16,8 @@ export const FORMAT_ORDER = [
     'BANNER.jpg', 
     'BRAND_LOGO.jpg', 
     'SLIDER_MOBILE.jpg', 
-    'SLIDER_WEB.jpg'
+    'SLIDER_WEB.jpg',
+    'ENTREGA.jpg'
 ];
 
 export const IMAGE_A_ID = 'imageA';
