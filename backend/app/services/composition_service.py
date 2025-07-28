@@ -1,5 +1,3 @@
-# backend/app/services/composition_service.py
-
 from PIL import Image, ImageDraw, ImageOps
 import io
 import json
@@ -159,41 +157,80 @@ def _apply_automatic_composition(canvas: Image.Image, original_image: Image.Imag
 
 def _create_entrega_format(generated_images: dict, formats_config: dict) -> bytes:
     CANVAS_WIDTH = 980
-    CANVAS_HEIGHT = 1197
+    CANVAS_HEIGHT = 1002
     MARGIN = 20
     GAP = 20
-    TEXT_COLOR = (80, 80, 80)
+    TEXT_COLOR = (120, 120, 120)
     LINE_COLOR = (230, 230, 230)
     
+    TARGET_SLOT1_SIZE = (331, 242)
+    TARGET_SHOWROOM_SIZE = (588, 242)
+
     try:
-        font_path = os.path.join(FONTS_BASE_PATH, "arial.ttf")
-        font_label = ImageFont.truetype(font_path, 20)
-        font_section = ImageFont.truetype(font_path, 24)
+        font_path = os.path.join(FONTS_BASE_PATH, "Poppins-Bold.ttf")
+        font_path_menu = os.path.join(FONTS_BASE_PATH, "Poppins-Regular.ttf")
+        font_symbol_path = os.path.join(FONTS_BASE_PATH, "cambria.ttc")
+        font_heart = ImageFont.truetype(font_symbol_path, 12)
+        font_label = ImageFont.truetype(font_path, 12)
+        font_section = ImageFont.truetype(font_path, 12)
+
+        font_menu = ImageFont.truetype(font_path_menu, 12) 
     except IOError:
-        logger.warning("Fonte Montserrat não encontrada, usando fonte padrão.")
         font_label = ImageFont.load_default()
         font_section = ImageFont.load_default()
+        font_menu = ImageFont.load_default()
+        font_heart = ImageFont.load_default()
 
     entrega_canvas = Image.new('RGB', (CANVAS_WIDTH, CANVAS_HEIGHT), (255, 255, 255))
     draw = ImageDraw.Draw(entrega_canvas)
 
     def get_placeholder(width, height, text="Não gerado"):
-        placeholder = Image.new('RGB', (width, height), (240, 240, 240))
-        d = ImageDraw.Draw(placeholder)
-        d.text((10, 10), text, fill=(150, 150, 150), font=font_label)
-        return placeholder
+        
+        return Image.new('RGB', (width, height), (240, 240, 240))
 
     slot1_bytes = generated_images.get('SLOT1_WEB.jpg', {}).get('image_bytes')
     showroom_bytes = generated_images.get('SHOWROOM_MOBILE.jpg', {}).get('image_bytes')
     home_bytes = generated_images.get('HOME_PRIVATE.jpg', {}).get('image_bytes')
     
-    slot1_dim = formats_config.get('SLOT1_WEB', {'width': 300, 'height': 220})
-    showroom_dim = formats_config.get('SHOWROOM_MOBILE', {'width': 1080, 'height': 445})
-    home_dim = formats_config.get('HOME_PRIVATE', {'width': 940, 'height': 530})
+    img_slot1_original = Image.open(io.BytesIO(slot1_bytes)) if slot1_bytes else None
+    img_showroom_original = Image.open(io.BytesIO(showroom_bytes)) if showroom_bytes else None
+    img_home = Image.open(io.BytesIO(home_bytes)) if home_bytes else None
 
-    img_slot1 = Image.open(io.BytesIO(slot1_bytes)) if slot1_bytes else get_placeholder(slot1_dim['width'], slot1_dim['height'])
-    img_showroom = Image.open(io.BytesIO(showroom_bytes)) if showroom_bytes else get_placeholder(showroom_dim['width'], showroom_dim['height'])
-    img_home = Image.open(io.BytesIO(home_bytes)) if home_bytes else get_placeholder(home_dim['width'], home_dim['height'])
+    img_slot1 = img_slot1_original.resize(TARGET_SLOT1_SIZE, Image.Resampling.LANCZOS) if img_slot1_original else get_placeholder(*TARGET_SLOT1_SIZE)
+    img_showroom = img_showroom_original.resize(TARGET_SHOWROOM_SIZE, Image.Resampling.LANCZOS) if img_showroom_original else get_placeholder(*TARGET_SHOWROOM_SIZE)
+    
+    home_dim = formats_config.get('HOME_PRIVATE', {'width': 940, 'height': 530})
+    if not img_home:
+        img_home = get_placeholder(home_dim['width'], home_dim['height'])
+
+    if img_home:
+        home_rules = formats_config.get('HOME_PRIVATE', {}).get('rules', {})
+        draw_home = ImageDraw.Draw(img_home)
+
+        start_x = home_rules.get('margin', {}).get('x', 20)
+        logo_area_height = home_rules.get('logo_area', {}).get('height', 100)
+        menu_start_y = home_rules.get('margin', {}).get('y', 40) + logo_area_height + 40 # 40px de margem
+        
+        menu_items = ["Mais desejados ♡", "Categoria 1", "Categoria 2", "Categoria 3"]
+        menu_line_padding = 12
+        menu_text_color = (80, 80, 80)
+        heart_color = (220, 53, 69)
+        
+        for item in menu_items:
+            
+            if "♡" in item:
+                text_part = item.replace(" ♡", "")
+                draw_home.text((start_x, menu_start_y), text_part, fill=menu_text_color, font=font_menu)
+                bbox = draw_home.textbbox((start_x, menu_start_y), text_part, font=font_menu)
+                draw_home.text((bbox[2] + 5, menu_start_y), "♡", fill=heart_color, font=font_heart)
+            else:
+                draw_home.text((start_x, menu_start_y), item, fill=menu_text_color, font=font_menu)
+
+            bbox = draw_home.textbbox((start_x, menu_start_y), item, font=font_menu)
+            line_y = bbox[3] + menu_line_padding
+            draw_home.line([(start_x, line_y), (home_rules.get('split_width', 300) - MARGIN, line_y)], fill=LINE_COLOR, width=1)
+            menu_start_y = line_y + menu_line_padding
+
 
     current_y = MARGIN
     try:
@@ -203,22 +240,34 @@ def _create_entrega_format(generated_images: dict, formats_config: dict) -> byte
         entrega_canvas.paste(logo_privalia, (logo_x, current_y), logo_privalia)
         current_y += logo_privalia.height + GAP
     except FileNotFoundError:
-        logger.error(f"Logo da Privalia não encontrado em: {PRIVALIA_LOGO_PATH}")
         current_y += 60 + GAP
 
-    draw.text((MARGIN, current_y), "Slot 1", fill=TEXT_COLOR, font=font_label)
-    draw.text((MARGIN + slot1_dim['width'] + GAP, current_y), "Showroom Mobile", fill=TEXT_COLOR, font=font_label)
-    current_y += 30
+    text_y_top = current_y
+    draw.text((MARGIN, text_y_top), "Slot 1", fill=TEXT_COLOR, font=font_label)
+    draw.text((MARGIN + TARGET_SLOT1_SIZE[0] + GAP, text_y_top), "Showroom Mobile", fill=TEXT_COLOR, font=font_label)
+
+    bbox_top = draw.textbbox((MARGIN, text_y_top), "Slot 1", font=font_label)
+    line_y_top = bbox_top[3] + 8
+
+    line1_end_x = MARGIN + TARGET_SLOT1_SIZE[0]
+    draw.line([(MARGIN, line_y_top), (line1_end_x, line_y_top)], fill=LINE_COLOR, width=1)
+
+    line2_start_x = MARGIN + TARGET_SLOT1_SIZE[0] + GAP
+    line2_end_x = CANVAS_WIDTH - MARGIN
+    draw.line([(line2_start_x, line_y_top), (line2_end_x, line_y_top)], fill=LINE_COLOR, width=1)
+    
+    current_y = line_y_top + GAP 
 
     entrega_canvas.paste(img_slot1, (MARGIN, current_y))
-    entrega_canvas.paste(img_showroom, (MARGIN + slot1_dim['width'] + GAP, current_y))
-    current_y += showroom_dim['height'] + GAP
+    entrega_canvas.paste(img_showroom, (MARGIN + TARGET_SLOT1_SIZE[0] + GAP, current_y))
+    current_y += TARGET_SHOWROOM_SIZE[1] + GAP
 
-    draw.line([(MARGIN, current_y), (CANVAS_WIDTH - MARGIN, current_y)], fill=LINE_COLOR, width=1)
-    current_y += GAP
-
-    draw.text((MARGIN, current_y), "Home", fill=TEXT_COLOR, font=font_section)
-    current_y += 40
+    text_y_home = current_y
+    draw.text((MARGIN, text_y_home), "Home", fill=TEXT_COLOR, font=font_section)
+    bbox_home = draw.textbbox((MARGIN, text_y_home), "Home", font=font_section)
+    line_y_home = bbox_home[3] + 8
+    draw.line([(MARGIN, line_y_home), (CANVAS_WIDTH - MARGIN, line_y_home)], fill=LINE_COLOR, width=1)
+    current_y = line_y_home + GAP
 
     entrega_canvas.paste(img_home, (MARGIN, current_y))
 
@@ -410,14 +459,12 @@ def compose_all_formats_assigned(
     if all(comp in output_data for comp in componentes_necessarios):
         logger.info("Todos os componentes para 'ENTREGA' foram gerados. Montando o formato composto...")
         try:
+            formats_map = {fmt['name']: fmt for fmt in FORMAT_CONFIG}
             entrega_bytes = _create_entrega_format(output_data, formats_map)
-            output_data['ENTREGA.jpg'] = {
-                "image_bytes": entrega_bytes,
-                "composition_data": None
-            }
+            output_data['ENTREGA.jpg'] = {"image_bytes": entrega_bytes, "composition_data": None}
         except Exception as e:
             logger.error(f"Falha ao criar o formato ENTREGA: {e}", exc_info=True)
     else:
         logger.warning("Não foi possível gerar 'ENTREGA' pois um ou mais de seus componentes não foram gerados.")
-
+    
     return output_data

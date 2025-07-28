@@ -127,7 +127,9 @@
       } 
     },
     {
-      "name": "ENTREGA", "width": 980, "height": 1197, 
+      "name": "ENTREGA", 
+      "width": 980,
+      "height": 985,
       "rules": { 
         "type": "special_composite"
       } 
