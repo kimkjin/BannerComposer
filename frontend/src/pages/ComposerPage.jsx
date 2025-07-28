@@ -16,6 +16,19 @@ import BrandLogoEditor from '../components/BrandLogoEditor';
 import { FORMAT_ORDER, IMAGE_A_ID, IMAGE_B_ID } from '../constants';
 import './ComposerPage.css';
 
+const formatPairs = {
+    'SLOT1_WEB.jpg': 'SLOT1_WEB_PRE.jpg',
+    'SLOT1_WEB_PRE.jpg': 'SLOT1_WEB.jpg',
+    'SLOT2_WEB.jpg': 'SLOT2_WEB_PRE.jpg',
+    'SLOT2_WEB_PRE.jpg': 'SLOT2_WEB.jpg',
+    'SLOT1_NEXT_WEB.jpg': 'SLOT1_NEXT_WEB_PRE.jpg',
+    'SLOT1_NEXT_WEB_PRE.jpg': 'SLOT1_NEXT_WEB.jpg',
+    'SLOT3_WEB.jpg': 'SLOT3_WEB_PRE.jpg',
+    'SLOT3_WEB_PRE.jpg': 'SLOT3_WEB.jpg',
+    'HOME_PRIVATE.jpg': 'HOME_PRIVATE_PUBLIC.jpg',
+    'HOME_PRIVATE_PUBLIC.jpg': 'HOME_PRIVATE.jpg',
+};
+
 function ComposerPage() {
     const [formatsConfig, setFormatsConfig] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -160,69 +173,87 @@ function ComposerPage() {
     };
 
     const handleSaveEdit = async (formatName, saveData) => {
-        const newOverrides = { ...manualOverrides, [formatName]: saveData };
-        setManualOverrides(newOverrides);
-        
-        setStatusMessage(`Atualizando ${formatName}...`);
+        setStatusMessage(`Salvando edições para ${formatName}...`);
         setIsLoading(true);
         handleCloseEditor();
 
-        try {
-            const assignedImageId = assignments[formatName];
-            const imageFile = files[assignedImageId];
-            const logosInfoForApi = selectedLogos.map(l => ({ folder: l.folder, filename: l.filename }));
-            
-            // Passo 1: Gera o preview do formato que foi editado
-            const imageBlob = await getSinglePreview(formatName, imageFile, logosInfoForApi, saveData);
-            const reader = new FileReader();
-            reader.readAsDataURL(imageBlob);
-            reader.onloadend = () => {
-                const base64data = reader.result.split(',')[1];
-                
-                // Passo 2: Cria um objeto temporário com o estado futuro dos previews
-                const nextPreviewsState = {
-                    ...previews,
-                    [formatName]: { ...previews[formatName], data: base64data, composition_data: saveData }
-                };
+        // 1. Identificar o formato irmão, se existir
+        const siblingFormat = formatPairs[formatName];
 
-                // Atualiza a UI para o componente que acabou de ser editado
-                setPreviews(nextPreviewsState);
+        // 2. Atualizar o estado de overrides para ambos os formatos
+        const newOverrides = { ...manualOverrides, [formatName]: saveData };
+        if (siblingFormat) {
+            newOverrides[siblingFormat] = saveData; // Espelha a configuração
+        }
+        setManualOverrides(newOverrides);
+
+        try {
+            // Função auxiliar para regenerar um único preview
+            const regeneratePreview = async (name) => {
+                const assignedImageId = assignments[name];
+                if (!files[assignedImageId]) return null; // Pula se não houver imagem atribuída
                 
-                // Passo 3: Verifica se o formato editado é um componente do ENTREGA
-                const entregaDependencies = ['SLOT1_WEB.jpg', 'SHOWROOM_MOBILE.jpg', 'HOME_PRIVATE.jpg'];
-                if (entregaDependencies.includes(formatName)) {
-                    // Garante que todos os componentes existem antes de tentar gerar
-                    if (entregaDependencies.every(dep => nextPreviewsState[dep]?.data)) {
-                        setStatusMessage("Atualizando o formato de Entrega...");
-                        
-                        // Passo 4: Pede ao backend para gerar o novo ENTREGA
-                        getEntregaPreview(nextPreviewsState).then(entregaBlob => {
-                            const entregaReader = new FileReader();
-                            entregaReader.readAsDataURL(entregaBlob);
-                            entregaReader.onloadend = () => {
-                                const entregaBase64 = entregaReader.result.split(',')[1];
-                                // Passo 5: Atualiza o estado final com o preview do ENTREGA
-                                setPreviews(prev => ({
-                                    ...prev,
-                                    'ENTREGA.jpg': { ...prev['ENTREGA.jpg'], data: entregaBase64 }
-                                }));
-                                setStatusMessage("Pré-visualizações atualizadas!");
-                            };
-                        }).catch(error => {
-                            console.error("Falha ao atualizar o preview de Entrega.", error);
-                            setStatusMessage("Pré-visualização atualizada, mas falhou ao gerar 'Entrega'.");
-                        });
-                    } else {
-                         setStatusMessage("Pré-visualização atualizada!");
-                    }
-                } else {
-                    // Se não for uma dependência, o trabalho termina aqui.
-                    setStatusMessage("Pré-visualização atualizada!");
-                }
+                const imageFile = files[assignedImageId];
+                const logosInfoForApi = selectedLogos.map(l => ({ folder: l.folder, filename: l.filename }));
+                
+                const imageBlob = await getSinglePreview(name, imageFile, logosInfoForApi, saveData);
+                
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(imageBlob);
+                    reader.onloadend = () => {
+                        const base64data = reader.result.split(',')[1];
+                        resolve({ name, data: base64data });
+                    };
+                });
             };
+
+            // 3. Montar uma lista de promessas para regeneração
+            const regenerationPromises = [regeneratePreview(formatName)];
+            if (siblingFormat) {
+                setStatusMessage(`Salvando edições para ${formatName} e ${siblingFormat}...`);
+                regenerationPromises.push(regeneratePreview(siblingFormat));
+            }
+
+            // 4. Executar todas as regenerações em paralelo
+            const results = await Promise.all(regenerationPromises);
+            
+            // 5. Atualizar o estado dos previews com todos os novos resultados
+            const nextPreviewsState = { ...previews };
+            results.forEach(result => {
+                if (result) {
+                    nextPreviewsState[result.name] = { 
+                        ...previews[result.name], 
+                        data: result.data, 
+                        composition_data: saveData 
+                    };
+                }
+            });
+            setPreviews(nextPreviewsState);
+
+            // 6. Verificar se precisa atualizar o formato ENTREGA (lógica existente)
+            const entregaDependencies = ['SLOT1_WEB.jpg', 'SHOWROOM_MOBILE.jpg', 'HOME_PRIVATE.jpg'];
+            if (entregaDependencies.some(dep => dep === formatName || dep === siblingFormat)) {
+                if (entregaDependencies.every(dep => nextPreviewsState[dep]?.data)) {
+                    setStatusMessage("Atualizando o formato de Entrega...");
+                    const entregaBlob = await getEntregaPreview(nextPreviewsState);
+                    const entregaReader = new FileReader();
+                    entregaReader.readAsDataURL(entregaBlob);
+                    entregaReader.onloadend = () => {
+                        const entregaBase64 = entregaReader.result.split(',')[1];
+                        setPreviews(prev => ({
+                            ...prev,
+                            'ENTREGA.jpg': { ...prev['ENTREGA.jpg'], data: entregaBase64 }
+                        }));
+                    };
+                }
+            }
+
+            setStatusMessage("Pré-visualizações atualizadas com sucesso!");
+
         } catch (error) {
-            console.error(`Erro ao atualizar preview:`, error);
-            setStatusMessage("Erro ao atualizar preview.");
+            console.error(`Erro ao salvar edições e espelhar previews:`, error);
+            setStatusMessage("Ocorreu um erro ao salvar as edições.");
         } finally {
             setIsLoading(false);
         }
