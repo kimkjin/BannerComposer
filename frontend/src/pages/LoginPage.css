@@ -1,0 +1,114 @@
+@-webkit-keyframes bg-pan-left {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes bg-pan-left {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.login-container {
+  display: grid;
+  place-items: center;
+  height: 100vh;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: linear-gradient(75deg, 
+    var(--privalia-pink), 
+    #34495e, 
+    #2c3e50, 
+    #1abc9c
+  );
+  background-size: 400% 400%;
+}
+
+.bg-pan-left {
+	-webkit-animation: bg-pan-left 15s ease infinite alternate both;
+	        animation: bg-pan-left 15s ease infinite alternate both;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem;
+  border-radius: 16px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.login-box h1 {
+  color: #ffffff;
+  margin-top: 0;
+  text-shadow: 0 0 8px rgba(230, 0, 126, 0.6);
+}
+
+.login-box p {
+  color: #e0e0e0;
+}
+
+.input-group {
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #f0f0f0;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  box-sizing: border-box;
+  font-size: 1rem;
+
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+  box-shadow: inset 0px 2px 5px rgba(0, 0, 0, 0.2); 
+}
+
+.input-group input:focus {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(230, 0, 126, 0.5); 
+  box-shadow: inset 0px 2px 5px rgba(0, 0, 0, 0.2), 0 0 15px rgba(230, 0, 126, 0.3);
+}
+
+.login-button {
+  width: 100%;
+  padding: 0.9rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  background: var(--privalia-pink);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.login-button:hover {
+  filter: brightness(1.15); 
+  box-shadow: 0 6px 25px rgba(230, 0, 126, 0.4); 
+  transform: translateY(-2px);
+}
+
+.error-message {
+    color: #ff9e9e;
+    margin-bottom: 1rem;
+    background: rgba(255, 100, 100, 0.1);
+    padding: 0.5rem;
+    border-radius: 6px;
+}

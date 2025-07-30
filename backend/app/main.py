@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .api.routes import process
+from .api.routes import process, auth
 from .core.config import settings
 
 app = FastAPI(title=settings.PROJECT_NAME)
@@ -14,6 +14,7 @@ app.add_middleware(
 )
 
 app.include_router(process.router, prefix="/api/v1", tags=["processing"])
+app.include_router(auth.router, prefix="/api/v1", tags=["authentication"])
 
 @app.get("/")
 def read_root():

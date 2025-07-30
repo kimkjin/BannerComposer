@@ -13,3 +13,12 @@ __pycache__/
 # Frontend
 frontend/node_modules/
 frontend/dist/
+
+#backend
+
+users.json
+backend/users.json
+manage_users.py
+backend/manage_users.py
+backend/app/static/fonts
+backend/app/static/logos
