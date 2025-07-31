@@ -5,12 +5,14 @@ import os
 from PIL import Image
 import io
 from pydantic import BaseModel
-from typing import Dict # <-- Importante ter esta linha
+from typing import Dict
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Response 
 from ...services import composition_service, ia_service
 from ...models.schemas import ClientLog
 from ...services import zip_service
 from ...services.composition_service import FORMAT_CONFIG
+import os
+import shutil
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -66,6 +68,40 @@ async def get_formats_config():
     if not FORMAT_CONFIG:
         raise HTTPException(status_code=500, detail="A configuração de formatos não foi carregada no servidor.")
     return FORMAT_CONFIG
+
+@router.post("/upload-logos")
+async def upload_logos(
+    files: list[UploadFile] = File(...),
+    folder_name: str = Form(...)
+):
+    if not folder_name:
+        raise HTTPException(status_code=400, detail="O nome da marca (pasta) é obrigatório.")
+
+    folder_path = os.path.join(LOGOS_BASE_PATH, folder_name)
+
+    os.makedirs(folder_path, exist_ok=True)
+    
+    allowed_extensions = {".png", ".svg"}
+    uploaded_filenames = []
+
+    for file in files:
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        if file_ext not in allowed_extensions:
+            logger.warning(f"Upload de tipo de arquivo inválido foi bloqueado: {file.filename}")
+            continue
+
+        file_location = os.path.join(folder_path, file.filename)
+        try:
+            with open(file_location, "wb+") as file_object:
+                shutil.copyfileobj(file.file, file_object)
+            uploaded_filenames.append(file.filename)
+        finally:
+            file.file.close()
+
+    if not uploaded_filenames:
+        raise HTTPException(status_code=400, detail="Nenhum arquivo válido foi enviado ou erro ao salvar.")
+
+    return {"message": f"Logos salvos com sucesso em '{folder_name}'", "uploaded_files": uploaded_filenames}
 
 @router.get("/list-fonts")
 async def list_fonts(query: str = ""):

@@ -40,8 +40,7 @@ export const getPreviews = async (files, assignments, selectedLogos, overrides =
     const formData = new FormData();
     formData.append('imageA', files.imageA);
     formData.append('imageB', files.imageB);
-    
-    // Transforma a lista de logos em uma string JSON
+
     const logosForApi = selectedLogos.map(logo => ({ folder: logo.folder, filename: logo.filename }));
     formData.append('selected_logos', JSON.stringify(logosForApi));
 
@@ -125,19 +124,15 @@ export const getRecognitionTest = async (file, formatName) => {
 export const listFonts = async (query = '') => {
     try {
         const response = await apiClient.get(`/list-fonts?query=${encodeURIComponent(query)}`);
-        // --- CORREÇÃO AQUI ---
-        return response.data; // Retorna o objeto completo { fonts: [...] }
+        return response.data;
     } catch (error) {
-        // Loga o erro no console do navegador para debug, mas não propaga o erro.
         console.error("API Error: Falha ao buscar fontes. Verifique se o backend está no ar e se a pasta de fontes existe.", error);
-        // Retorna um objeto válido para não quebrar o SearchableDropdown.
         return { fonts: [] };
     }
 };
 
 export const getEntregaPreview = async (previews) => {
     try {
-        // Monta o payload com os dados base64 dos componentes
         const payload = {
             'slot1_web_jpg': previews['SLOT1_WEB.jpg'].data,
             'showroom_mobile_jpg': previews['SHOWROOM_MOBILE.jpg'].data,
@@ -154,7 +149,6 @@ export const getEntregaPreview = async (previews) => {
 };
 
 export const generateAndDownloadZip = async (campaignId, previews) => {
-    // Coleta apenas os dados necessários (nome do arquivo e base64)
     const imagesData = Object.entries(previews).reduce((acc, [key, value]) => {
         if (value.data) {
             acc[key] = value.data;
@@ -168,8 +162,26 @@ export const generateAndDownloadZip = async (campaignId, previews) => {
     };
 
     const response = await apiClient.post('/generate-zip', payload, {
-        responseType: 'blob', // Muito importante para receber o arquivo
+        responseType: 'blob',
     });
 
-    return response.data; // Retorna o blob do arquivo zip
+    return response.data;
+};
+
+export const uploadLogos = async (folderName, files) => {
+    const formData = new FormData();
+    formData.append('folder_name', folderName);
+
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
+
+    try {
+        const response = await apiClient.post('/upload-logos', formData, {
+        });
+        return response.data;
+    } catch (error) {
+        console.error("API Error: Falha ao fazer upload dos logos", error);
+        throw error;
+    }
 };

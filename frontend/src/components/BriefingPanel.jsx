@@ -1,8 +1,9 @@
 // frontend/src/components/BriefingPanel.jsx
 
-import React from 'react';
+import React, { useRef } from 'react';
 import ImageUploader from './ImageUploader';
 import SearchableDropdown from './SearchableDropdown';
+import { uploadLogos } from '../api/composerApi'; // Importação que você já tinha
 import './BriefingPanel.css'; 
 
 function BriefingPanel({ 
@@ -17,6 +18,38 @@ function BriefingPanel({
     onTaglineStateChange,
     onFontSearch
 }) {
+
+  // Sua lógica existente, que está correta
+  const fileInputRef = useRef(null);
+
+  const handleUploadClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileSelected = async (event) => {
+    const files = event.target.files;
+    if (!files.length) {
+      return;
+    }
+
+    const brandName = window.prompt("Digite o nome da marca para criar a pasta:", "");
+    if (!brandName || brandName.trim() === "") {
+      alert("Upload cancelado. O nome da marca é obrigatório.");
+      return;
+    }
+    
+    try {
+      const response = await uploadLogos(brandName.trim(), files);
+      alert(response.message);
+      
+      onFolderSelect(brandName.trim()); 
+      
+    } catch (error) {
+      alert("Ocorreu um erro durante o upload. Verifique o console.");
+    }
+
+    event.target.value = null; 
+  };
 
   const handleTaglineChange = (field, value) => {
     onTaglineStateChange({ ...taglineState, [field]: value });
@@ -40,7 +73,24 @@ function BriefingPanel({
       </div>
 
       <div className="panel-section">
-        <h3>2. Marca e Logo</h3>
+        {/* --- MUDANÇA: Adicionado o header para alinhar o título e o botão --- */}
+        <div className="panel-section-header">
+          <h3>2. Marca e Logo</h3>
+          {/* Input de arquivo escondido */}
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileSelected}
+            multiple 
+            accept=".png,.svg"
+            style={{ display: 'none' }} 
+          />
+          {/* Botão de upload que aciona o input */}
+          <button className="upload-logo-btn" onClick={handleUploadClick} title="Fazer upload de novos logos">
+            <img src="/upload.png" alt="Upload Logo" />
+          </button>
+        </div>
+        
         <SearchableDropdown
           onSearch={onFolderSearch}
           onSelect={onFolderSelect}
@@ -63,6 +113,7 @@ function BriefingPanel({
         )}
       </div>
 
+      {/* O resto do seu JSX permanece exatamente o mesmo */}
       {selectedLogos.length > 0 && (
         <div className="panel-section selected-logos-area">
             <h4>Logos da Campanha</h4>
@@ -125,7 +176,6 @@ function BriefingPanel({
           </div>
         )}
       </div>
-
     </aside>
   );
 }

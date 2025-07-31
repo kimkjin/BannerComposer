@@ -309,3 +309,35 @@
   background-color: #e02d33;
   border-color: #e02d33;
 }
+
+.panel-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem; /* Adiciona um espaço antes do campo de busca */
+}
+
+.panel-section-header h3 {
+  margin: 0; /* Remove a margem padrão do h3 */
+}
+
+.upload-logo-btn {
+  background: transparent;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.upload-logo-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.upload-logo-btn img {
+  width: 24px;
+  height: 24px;
+}
