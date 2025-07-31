@@ -15,6 +15,9 @@ import SplitLayoutEditor from '../components/SplitLayoutEditor';
 import BrandLogoEditor from '../components/BrandLogoEditor';
 import { FORMAT_ORDER, IMAGE_A_ID, IMAGE_B_ID } from '../constants';
 import './ComposerPage.css';
+import {
+    generateAndDownloadZip
+} from '../api/composerApi';
 
 const formatPairs = {
     'SLOT1_WEB.jpg': 'SLOT1_WEB_PRE.jpg',
@@ -295,7 +298,42 @@ function ComposerPage() {
     };
 
     const handleDownloadZip = async () => {
-        alert("Função de Download ainda não implementada.");
+        // 1. Pede o ID da campanha ao usuário
+        const campaignId = window.prompt("Por favor, insira o ID da campanha:", "");
+
+        // 2. Verifica se o usuário inseriu um ID ou cancelou
+        if (!campaignId || campaignId.trim() === "") {
+            setStatusMessage("Download cancelado. O ID da campanha é necessário.");
+            return;
+        }
+
+        setIsLoading(true);
+        setStatusMessage("Preparando e compactando arquivos...");
+
+        try {
+            // 3. Chama a API para gerar e receber o blob do ZIP
+            const zipBlob = await generateAndDownloadZip(campaignId.trim(), previews);
+
+            // 4. Cria um link temporário para acionar o download no navegador
+            const url = window.URL.createObjectURL(new Blob([zipBlob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `images_${campaignId.trim()}.zip`);
+            
+            // 5. Simula o clique no link e depois o remove
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url); // Limpa a memória
+
+            setStatusMessage("Download iniciado com sucesso!");
+
+        } catch (error) {
+            console.error("Falha ao gerar o ZIP:", error);
+            setStatusMessage("Ocorreu um erro ao gerar o arquivo .zip. Verifique o console.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const canGenerate = files.imageA && files.imageB && selectedLogos.length > 0;

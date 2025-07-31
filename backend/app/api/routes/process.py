@@ -5,6 +5,7 @@ import os
 from PIL import Image
 import io
 from pydantic import BaseModel
+from typing import Dict # <-- Importante ter esta linha
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Response 
 from ...services import composition_service, ia_service
 from ...models.schemas import ClientLog
@@ -20,6 +21,10 @@ class EntregaPayload(BaseModel):
     slot1_web_jpg: str
     showroom_mobile_jpg: str
     home_private_jpg: str
+
+class ZipRequest(BaseModel):
+    campaign_id: str
+    images: Dict[str, str]
 
 @router.post("/log-client-error")
 async def log_client_error(log: ClientLog):
@@ -201,7 +206,44 @@ async def list_logo_folders(query: str = ""):
         logger.error(f"Diretório de logos não encontrado em: {LOGOS_BASE_PATH}")
         raise HTTPException(status_code=404, detail="Diretório de logos não encontrado.")
 
-# --- FUNÇÃO ATUALIZADA ---
+@router.post("/generate-zip")
+async def generate_zip(request: ZipRequest):
+    try:
+        images_to_zip = {}
+        folder_name = f"images_{request.campaign_id}"
+
+        for filename, base64_data in request.images.items():
+            image_bytes = base64.b64decode(base64_data)
+            final_filename = filename
+
+            if filename == 'BRAND_LOGO.jpg':
+                final_filename = 'BRAND_LOGO.png'
+                try:
+                    img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+                    png_buffer = io.BytesIO()
+                    img.save(png_buffer, format='PNG')
+                    image_bytes = png_buffer.getvalue()
+                except Exception as e:
+                    logger.error(f"Falha ao converter BRAND_LOGO para PNG: {e}")
+                    final_filename = filename
+            
+            zip_path = os.path.join(folder_name, final_filename)
+            images_to_zip[zip_path] = image_bytes
+        
+        if not images_to_zip:
+            raise HTTPException(status_code=400, detail="Nenhuma imagem fornecida para o ZIP.")
+
+        zip_buffer = zip_service.create_zip_from_images(images_to_zip)
+        zip_filename = f"images_{request.campaign_id}.zip"
+        
+        headers = {'Content-Disposition': f'attachment; filename="{zip_filename}"'}
+        
+        return Response(content=zip_buffer.getvalue(), media_type='application/zip', headers=headers)
+
+    except Exception as e:
+        logger.error(f"Erro na rota /generate-zip: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro interno ao gerar o arquivo ZIP: {str(e)}")
+
 @router.get("/list-logos/{folder_name}")
 async def list_logos_in_folder(folder_name: str):
     """Lista os logos válidos (PNG, SVG) de uma pasta, removendo o espaço transparente extra."""

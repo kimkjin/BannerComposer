@@ -152,3 +152,24 @@ export const getEntregaPreview = async (previews) => {
         throw error;
     }
 };
+
+export const generateAndDownloadZip = async (campaignId, previews) => {
+    // Coleta apenas os dados necessários (nome do arquivo e base64)
+    const imagesData = Object.entries(previews).reduce((acc, [key, value]) => {
+        if (value.data) {
+            acc[key] = value.data;
+        }
+        return acc;
+    }, {});
+
+    const payload = {
+        campaign_id: campaignId,
+        images: imagesData,
+    };
+
+    const response = await apiClient.post('/generate-zip', payload, {
+        responseType: 'blob', // Muito importante para receber o arquivo
+    });
+
+    return response.data; // Retorna o blob do arquivo zip
+};
