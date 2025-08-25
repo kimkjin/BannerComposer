@@ -32,4 +32,3 @@ function PreviewGrid({ previews, isLoading, assignments, onAssignmentChange, onT
 }
 
 export default PreviewGrid;
-
