@@ -1,5 +1,3 @@
-// frontend/src/components/SlotCard.jsx
-
 import React from 'react';
 import './SlotCard.css';
 
@@ -9,19 +7,13 @@ function SlotCard({
   isLoading, 
   assignment, 
   onAssignmentChange, 
-  onTestRecognition, 
-  onStartEdit
+  onStartEdit,
+  isLocked,
+  onToggleLock
 }) {
   const displayName = name.replace('.jpg', '').replace(/_/g, ' ');
   const b64Data = imageData?.data;
-
-  // Identifica o formato especial
   const isSpecialComposite = name === 'ENTREGA.jpg';
-
-  const handleTestClick = () => {
-    if (!assignment) return;
-    onTestRecognition(name, assignment); 
-  };
 
   const handleEditClick = () => {
     if (imageData && assignment) {
@@ -30,32 +22,50 @@ function SlotCard({
   };
 
   return (
-    <div className={`slot-card ${assignment ? `assigned-${assignment}` : ''} ${isSpecialComposite ? 'special-composite' : ''}`}>
+    <div className={`slot-card ${assignment ? `assigned-${assignment}` : ''} ${isLocked ? 'is-locked' : ''}`}>
       <div className="slot-card-header">
         <h4>{displayName}</h4>
         
-        {/* --- MUDANÇA: Renderiza os botões A/B apenas se NÃO for o formato especial --- */}
-        {!isSpecialComposite && (
-          <div className="assignment-buttons">
-            <button
-              onClick={() => onAssignmentChange(name, 'imageA')}
-              className={`assign-btn a-btn ${assignment === 'imageA' ? 'active' : ''}`}
-              aria-label="Atribuir à Imagem A"
-              disabled={isLoading}
-            >A</button>
-            <button
-              onClick={() => onAssignmentChange(name, 'imageB')}
-              className={`assign-btn b-btn ${assignment === 'imageB' ? 'active' : ''}`}
-              aria-label="Atribuir à Imagem B"
-              disabled={isLoading}
-            >B</button>
-          </div>
-        )}
+        <div className="assignment-buttons">
+          {!isSpecialComposite && (
+            <>
+              <button
+                onClick={() => onAssignmentChange(name, 'imageA')}
+                className={`assign-btn a-btn ${assignment === 'imageA' ? 'active' : ''}`}
+                aria-label="Atribuir à Imagem A"
+                disabled={isLoading || isLocked}
+              >A</button>
+              <button
+                onClick={() => onAssignmentChange(name, 'imageB')}
+                className={`assign-btn b-btn ${assignment === 'imageB' ? 'active' : ''}`}
+                aria-label="Atribuir à Imagem B"
+                disabled={isLoading || isLocked}
+              >B</button>
+            </>
+          )}
+
+          {b64Data && !isSpecialComposite && (
+             <button 
+                onClick={() => onToggleLock(name)}
+                className={`lock-btn ${isLocked ? 'locked' : ''}`}
+                title={isLocked ? "Destravar edição" : "Travar edição"}
+                disabled={isLoading}
+             >
+                {/* + ALTERE A LINHA ABAIXO */}
+                <img src={isLocked ? 'src/assets/lock.svg' : 'src/assets/unlock.svg'} alt="Lock Status" />
+             </button>
+          )}
+        </div>
       </div>
 
       <div className="slot-preview-container">
         {b64Data && !isLoading && !isSpecialComposite && (
-          <button className="edit-button" onClick={handleEditClick} title="Editar posicionamento e logo">
+          <button 
+            className="edit-button" 
+            onClick={handleEditClick} 
+            title="Editar posicionamento e logo"
+            disabled={isLocked}
+          >
             Editar
           </button>
         )}
@@ -69,13 +79,12 @@ function SlotCard({
         )}
       </div>
 
-      {/* --- MUDANÇA: Renderiza o botão de teste apenas se NÃO for o formato especial --- */}
       {!isSpecialComposite && (
         <button 
           className="slot-test-btn" 
-          onClick={handleTestClick}
-          disabled={isLoading || !assignment}
-          title={!assignment ? "Atribua uma imagem primeiro" : "Testar reconhecimento e layout"}
+          onClick={() => { /* sua função de teste aqui */ }}
+          disabled={isLoading || !assignment || isLocked}
+          title={!assignment ? "Atribua uma imagem primeiro" : isLocked ? "Slot travado" : "Testar reconhecimento e layout"}
         >
           Testar Layout
         </button>

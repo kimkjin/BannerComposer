@@ -2,7 +2,16 @@ import React from 'react';
 import SlotCard from './SlotCard';
 import './PreviewGrid.css';
 
-function PreviewGrid({ previews, isLoading, assignments, onAssignmentChange, onTestRecognition, formatOrder, onStartEdit }) {
+function PreviewGrid({ 
+    previews, 
+    isLoading, 
+    assignments, 
+    onAssignmentChange, 
+    onStartEdit, 
+    formatOrder, 
+    lockedSlots, 
+    onToggleLock 
+}) {
   
   if (!formatOrder || formatOrder.length === 0) {
     return <p className="grid-placeholder">Aguardando configuração de formatos...</p>;
@@ -13,6 +22,7 @@ function PreviewGrid({ previews, isLoading, assignments, onAssignmentChange, onT
       {formatOrder.map(formatName => {
         const imageData = previews[formatName];
         const assignment = assignments[formatName];
+        const isLocked = !!lockedSlots[formatName];
 
         return (
           <SlotCard
@@ -22,8 +32,9 @@ function PreviewGrid({ previews, isLoading, assignments, onAssignmentChange, onT
             isLoading={isLoading && !imageData}
             assignment={assignment}
             onAssignmentChange={onAssignmentChange}
-            onTestRecognition={onTestRecognition}
-            onStartEdit={onStartEdit} // <-- E passe a função para o SlotCard
+            onStartEdit={onStartEdit}
+            isLocked={isLocked}
+            onToggleLock={onToggleLock}
           />
         );
       })}

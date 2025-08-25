@@ -35,6 +35,7 @@
 
 .assignment-buttons {
   display: flex;
+  align-items: center; 
   gap: 0.5rem;
 }
 
@@ -76,6 +77,43 @@
 .assign-btn.b-btn.active { 
   background-color: var(--assign-b-color);
   border-color: var(--assign-b-color);
+}
+
+.lock-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.25rem; /* Um pequeno espaço entre os botões A/B e o cadeado */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.lock-btn:hover:not(:disabled) {
+  background-color: #f0f2f5;
+}
+
+.lock-btn img {
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.lock-btn.locked img {
+  opacity: 1;
+}
+
+/* Feedback visual para o card inteiro quando travado */
+.slot-card.is-locked {
+  border-color: var(--privalia-pink);
+  box-shadow: 0 4px 12px rgba(230, 0, 126, 0.15);
+  background-color: #fff9fc;
 }
 
 .slot-preview-container {
@@ -147,6 +185,10 @@
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   z-index: 10;
+}
+
+.edit-button:disabled {
+  display: none;
 }
 
 .slot-preview-container:hover .edit-button {

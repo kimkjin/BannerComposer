@@ -44,10 +44,17 @@ function ComposerPage() {
     const [selectedLogos, setSelectedLogos] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [editingFormat, setEditingFormat] = useState(null);
+    const [lockedSlots, setLockedSlots] = useState({});
     const [manualOverrides, setManualOverrides] = useState({});
     const [taglineState, setTaglineState] = useState({
         enabled: false, text: '', font_filename: 'Montserrat-Regular.ttf', font_size: 24, color: '#000000', offset_y: 10,
     });
+    const handleToggleLock = (formatName) => {
+        setLockedSlots(prev => ({
+            ...prev,
+            [formatName]: !prev[formatName] 
+        }));
+    };
 
     useEffect(() => {
         const fetchFormatRules = async () => {
@@ -267,31 +274,62 @@ function ComposerPage() {
             alert("Por favor, suba ambas as imagens e selecione pelo menos um logo.");
             return;
         }
-        
-        const overridesForGeneration = {};
-        if (taglineState.enabled && taglineState.text) {
-            FORMAT_ORDER.forEach(formatName => {
-                overridesForGeneration[formatName] = { tagline: { ...taglineState } };
-            });
-        }
 
         setIsLoading(true);
         setStatusMessage("Gerando pré-visualizações...");
-        setPreviews({});
+
+        // --- LÓGICA MODIFICADA ---
+
+        // 1. Separa os assignments e overrides travados dos destravados
+        const assignmentsForGeneration = {};
+        const overridesForGeneration = {};
+        const preservedPreviews = {};
+
+        FORMAT_ORDER.forEach(formatName => {
+            if (lockedSlots[formatName]) {
+                // Se estiver travado, preserva o preview e o override existentes
+                if (previews[formatName]) {
+                    preservedPreviews[formatName] = previews[formatName];
+                }
+                // Não adiciona aos objetos que serão enviados para a API
+            } else {
+                // Se estiver destravado, adiciona para ser gerado novamente
+                assignmentsForGeneration[formatName] = assignments[formatName];
+                // Adiciona o override global da tagline, se aplicável
+                if (taglineState.enabled && taglineState.text) {
+                    overridesForGeneration[formatName] = { 
+                        ...manualOverrides[formatName], // Mantém overrides manuais existentes
+                        tagline: { ...taglineState } 
+                    };
+                } else if (manualOverrides[formatName]) {
+                    overridesForGeneration[formatName] = manualOverrides[formatName];
+                }
+            }
+        });
+
+        // Limpa previews antigos que não foram travados
+        setPreviews(preservedPreviews);
 
         try {
-            const previewData = await getPreviews(
-                files, 
-                assignments, 
-                selectedLogos, 
-                overridesForGeneration
-            );
-            setPreviews(previewData);
-            setManualOverrides(overridesForGeneration);
+            // Se houver algum formato para gerar, chama a API
+            if (Object.keys(assignmentsForGeneration).length > 0) {
+                const newPreviewData = await getPreviews(
+                    files,
+                    assignmentsForGeneration,
+                    selectedLogos,
+                    overridesForGeneration
+                );
+                // 2. Mescla os previews preservados com os novos
+                setPreviews(prev => ({ ...prev, ...newPreviewData }));
+            }
+            
             setStatusMessage("Pré-visualizações geradas com sucesso!");
+
         } catch (error) {
             setStatusMessage("Erro ao gerar previews.");
             console.error("Falha ao gerar as pré-visualizações:", error);
+            // Restaura os previews em caso de erro para não perder o estado travado
+            setPreviews(prev => ({...prev, ...preservedPreviews}));
         } finally {
             setIsLoading(false);
         }
@@ -427,6 +465,8 @@ function ComposerPage() {
                     onAssignmentChange={handleAssignmentChange}
                     onStartEdit={handleStartEditing}
                     formatOrder={FORMAT_ORDER}
+                    lockedSlots={lockedSlots}
+                    onToggleLock={handleToggleLock}
                 />
             </main>
         </div>
