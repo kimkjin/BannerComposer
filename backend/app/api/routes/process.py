@@ -28,7 +28,7 @@ class ZipRequest(BaseModel):
 
 @router.post("/log-client-error")
 async def log_client_error(log: ClientLog):
-    logger.error(f"--- ERRO RECEBIDO DO CLIENTE (FRONTEND) ---")
+    logger.error(f"--- ERRO RECEBIDO DO CLIENTE ---")
     logger.error(f"Nome do Erro: {log.name}")
     logger.error(f"Mensagem: {log.message}")    
     logger.error(f"Stack Trace: \n{log.stack}")
@@ -246,7 +246,7 @@ async def generate_zip(request: ZipRequest):
         zip_buffer = zip_service.create_zip_from_images(images_to_zip)
         zip_filename = f"images_{request.campaign_id}.zip"
         
-        headers = {'Content-Disposition': f'attachment; filename="{zip_filename}"'} # Corrected escaping for quotes within f-string
+        headers = {'Content-Disposition': f'attachment; filename="{zip_filename}"'}
         
         return Response(content=zip_buffer.getvalue(), media_type='application/zip', headers=headers)
 

@@ -13,13 +13,12 @@ try:
     model = YOLO(MODEL_PATH)
     logger.info(f"Modelo YOLO carregado com sucesso de: {MODEL_PATH}")
 except Exception as e:
-    logger.error(f"ERRO CRÍTICO ao carregar o modelo YOLO de '{MODEL_PATH}': {e}")
+    logger.error(f"ERRO ao carregar o modelo YOLO de '{MODEL_PATH}': {e}")
     model = None
 
 def analyze(image_bytes: bytes) -> dict:
     """
     Analisa uma imagem para detectar pessoas e rostos, determinando um ponto de foco.
-    O ponto de foco é crucial para o enquadramento automático da imagem.
     """
     if not model:
         raise RuntimeError("Modelo YOLO não foi carregado. A análise não pode continuar.")
@@ -102,7 +101,7 @@ def analyze_logo_placement_area(image: Image.Image, fmt_config: dict) -> str:
 
 def draw_detections_on_image(image_bytes: bytes, fmt_config: dict) -> bytes:
     """
-    Desenha as detecções da IA e as áreas de layout sobre a imagem para fins de depuração.
+    Desenha as detecções da IA para debug visual.
     """
     if not fmt_config:
         raise ValueError("A configuração do formato (fmt_config) é necessária.")

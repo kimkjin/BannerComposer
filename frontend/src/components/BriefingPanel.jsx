@@ -1,9 +1,7 @@
-// frontend/src/components/BriefingPanel.jsx
-
 import React, { useRef } from 'react';
 import ImageUploader from './ImageUploader';
 import SearchableDropdown from './SearchableDropdown';
-import { uploadLogos } from '../api/composerApi'; // Importação que você já tinha
+import { uploadLogos } from '../api/composerApi'; 
 import './BriefingPanel.css'; 
 
 function BriefingPanel({ 
@@ -19,7 +17,6 @@ function BriefingPanel({
     onFontSearch
 }) {
 
-  // Sua lógica existente, que está correta
   const fileInputRef = useRef(null);
 
   const handleUploadClick = () => {

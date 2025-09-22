@@ -1,5 +1,5 @@
 .briefing-panel {
-  background-color: #f8f9fa; /* Fundo do painel um pouco mais escuro */
+  background-color: #f8f9fa; 
   padding: 2.5rem 1.5rem;
   border-right: 1px solid #e0e4e8;
   display: flex;
@@ -21,7 +21,7 @@
   padding: 0.75rem;
   font-size: 1rem;
   font-weight: bold;
-  background-color: var(--composer-pink); /* Cor da marca! */
+  background-color: var(--composer-pink); 
   color: white; 
   border: none;
   border-radius: 8px;
@@ -31,7 +31,7 @@
 }
 
 .select-image-btn:hover:not(:disabled) {
-  background-color: #c4006b; /* Tom mais escuro do pink */
+  background-color: #c4006b; 
 }
 
 .image-preview-box {
@@ -72,8 +72,8 @@
   padding: 0.75rem;
   font-size: 1rem;
   font-weight: bold;
-  color: #333; /* Cor de texto padrão */
-  background-color: #e9ecef; /* Fundo padrão */
+  color: #333; 
+  background-color: #e9ecef; 
   border: 1px solid #ced4da;
   border-radius: 8px;
   cursor: pointer;
@@ -171,7 +171,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-size: 1.1rem; /* Mesmo tamanho dos outros títulos de seção */
+  font-size: 1.1rem; 
   font-weight: bold;
   cursor: pointer;
 }
@@ -314,11 +314,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem; /* Adiciona um espaço antes do campo de busca */
+  margin-bottom: 1rem; 
 }
 
 .panel-section-header h3 {
-  margin: 0; /* Remove a margem padrão do h3 */
+  margin: 0; 
 }
 
 .upload-logo-btn {

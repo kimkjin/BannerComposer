@@ -1,11 +1,7 @@
-// frontend/src/api/composerApi.js
-
 import axios from 'axios';
 
 // Define a URL base da API. Usa a variável de ambiente VITE_API_URL se estiver disponível.
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-
-// Cria uma instância do axios com a URL base pré-configurada.
 const apiClient = axios.create({
     baseURL: API_URL,
 });
@@ -26,7 +22,7 @@ export const listLogoFolders = async (query = '') => {
 };
 
 /**
- * Busca os logos (imagens) dentro de uma pasta específica.
+ * Busca os logos dentro de uma pasta específica.
  * @param {string} folderName - O nome da pasta a ser pesquisada.
  * @returns {Promise<Array>} Uma lista de objetos, cada um contendo o nome e os dados do logo.
  */
@@ -83,12 +79,12 @@ export const getPreviews = async (files, assignments, selectedLogos, overrides =
 };
 
 /**
- * Gera uma única pré-visualização para um formato específico, usado após edições manuais.
- * @param {string} formatName - O nome do formato (ex: 'SLOT1_WEB.jpg').
- * @param {File} imageFile - O arquivo de imagem a ser usado.
- * @param {Array} logosInfo - Informações sobre os logos a serem aplicados.
- * @param {Object} override - As configurações de edição para este formato.
- * @returns {Promise<Blob>} A imagem de pré-visualização gerada como um Blob.
+ * Gera uma única pré-visualização para um formato específico, usado após edições manuais
+ * @param {string} formatName - O nome do formato 
+ * @param {File} imageFile - O arquivo de imagem a ser usado
+ * @param {Array} logosInfo - Informações sobre os logos a serem aplicados
+ * @param {Object} override - As configurações de edição para este formato
+ * @returns {Promise<Blob>} A imagem de pré-visualização gerada como um Blob
  */
 export const getSinglePreview = async (formatName, imageFile, logosInfo, override) => {
     const formData = new FormData();
@@ -110,9 +106,9 @@ export const getSinglePreview = async (formatName, imageFile, logosInfo, overrid
 
 /**
  * Envia todos os dados da campanha para o backend para processar e gerar um arquivo .zip para download.
- * @param {string} campaignId - Identificador da campanha, usado para nomear o arquivo .zip.
- * @param {Object} previews - Objeto contendo os dados base64 de todas as imagens finais.
- * @returns {Promise<Blob>} O arquivo .zip como um Blob.
+ * @param {string} campaignId - Identificador da campanha, usado para nomear o arquivo .zip
+ * @param {Object} previews - Objeto contendo os dados base64 de todas as imagens finais
+ * @returns {Promise<Blob>} O arquivo .zip como um Blob
  */
 export const generateAndDownloadZip = async (campaignId, previews) => {
     const imagesData = Object.entries(previews).reduce((acc, [key, value]) => {
@@ -135,8 +131,8 @@ export const generateAndDownloadZip = async (campaignId, previews) => {
 };
 
 /**
- * Envia um log de erro do frontend para o servidor para monitoramento.
- * @param {Error} error - O objeto de erro capturado no frontend.
+ * Envia um log de erro do frontend para o servidor para monitoramento
+ * @param {Error} error - O objeto de erro capturado no frontend
  */
 export const logErrorToServer = async (error) => {
     try {
@@ -153,10 +149,10 @@ export const logErrorToServer = async (error) => {
 };
 
 /**
- * Envia uma imagem para teste de reconhecimento de objetos (IA).
- * @param {File} file - A imagem a ser testada.
- * @param {string} formatName - O nome do formato para referência.
- * @returns {Promise<Blob>} A imagem com as detecções da IA desenhadas.
+ * Envia uma imagem para teste de reconhecimento de objetos pela IA.
+ * @param {File} file - A imagem a ser testada
+ * @param {string} formatName - O nome do formato para referência
+ * @returns {Promise<Blob>} A imagem com as detecções da IA
  */
 export const getRecognitionTest = async (file, formatName) => {
     const formData = new FormData();
@@ -171,9 +167,9 @@ export const getRecognitionTest = async (file, formatName) => {
 };
 
 /**
- * Busca a lista de fontes disponíveis no servidor.
- * @param {string} query - Termo de busca opcional para filtrar as fontes.
- * @returns {Promise<Object>} Um objeto contendo uma lista de nomes de arquivos de fontes.
+ * Busca a lista de fontes disponíveis no servidor
+ * @param {string} query - Termo de busca opcional para filtrar as fontes
+ * @returns {Promise<Object>} Um objeto contendo uma lista de nomes de arquivos de fontes
  */
 export const listFonts = async (query = '') => {
     try {
@@ -186,9 +182,9 @@ export const listFonts = async (query = '') => {
 };
 
 /**
- * Gera a imagem de preview especial 'ENTREGA', que combina outras três imagens.
- * @param {Object} previews - O estado atual dos previews, contendo os dados das imagens necessárias.
- * @returns {Promise<Blob>} A imagem de 'ENTREGA' como um Blob.
+ * Gera a imagem de preview do formato 'ENTREGA'
+ * @param {Object} previews - O estado atual dos previews, contendo os dados das imagens necessárias
+ * @returns {Promise<Blob>} A imagem de 'ENTREGA' como um Blob
  */
 export const getEntregaPreview = async (previews) => {
     try {
@@ -208,11 +204,11 @@ export const getEntregaPreview = async (previews) => {
 };
 
 /**
- * Faz o upload de um ou mais arquivos de logo para uma pasta específica no servidor.
- * Se a pasta não existir, ela será criada.
- * @param {string} folderName - O nome da marca/pasta onde os logos serão salvos.
- * @param {FileList} files - A lista de arquivos de logo a serem enviados.
- * @returns {Promise<Object>} Uma resposta de sucesso do servidor.
+ * Faz o upload de um ou mais arquivos de logo para uma pasta específica no servidor
+ * Se a pasta não existir, ela será criada
+ * @param {string} folderName - O nome da marca/pasta onde os logos serão salvos
+ * @param {FileList} files - A lista de arquivos de logo a serem enviados
+ * @returns {Promise<Object>} Uma resposta de sucesso do servidor
  */
 export const uploadLogos = async (folderName, files) => {
     const formData = new FormData();

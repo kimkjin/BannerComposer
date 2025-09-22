@@ -51,7 +51,7 @@ function SlotCard({
                 title={isLocked ? "Destravar edição" : "Travar edição"}
                 disabled={isLoading}
              >
-                {/* ALTERAR A LINHA ABAIXO */}
+                {/* Trava */}
                 <img src={isLocked ? '/src/assets/lock.svg' : '/src/assets/unlock.svg'} alt="Lock Status" />
              </button>
           )}

@@ -22,7 +22,7 @@ function BrandLogoEditor({ preview, onClose, onSave }) {
                     id: `${logo.folder}-${logo.filename}`,
                     data: logo.data,
                     aspectRatio: aspectRatio,
-                    x: override.x ?? (preview.width - (rules.logo_area?.width || 150)) / 2 + (index * 60), // Posição X inicial para visualização
+                    x: override.x ?? (preview.width - (rules.logo_area?.width || 150)) / 2 + (index * 60),
                     y: override.y ?? (preview.height - (rules.logo_area?.height || 55)) / 2,
                     width: override.width ?? (rules.logo_area?.width || 150),
                     colorFilter: override.color_filter ?? 'none',

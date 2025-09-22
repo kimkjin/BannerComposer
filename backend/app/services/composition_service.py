@@ -26,10 +26,10 @@ def load_format_config():
                 if source_name in formats_map:
                     fmt['rules'] = formats_map[source_name]['rules']
         
-        logger.info("Configuração de formatos carregada e processada com sucesso.")
+        logger.info("Configuração de formatos processada com sucesso.")
         return config['formats']
     except Exception as e:
-        logger.error(f"ERRO CRÍTICO ao carregar ou processar formats.json: {e}")
+        logger.error(f"Erro ao processar formats.json: {e}")
         return []
 
 FORMAT_CONFIG = load_format_config()
