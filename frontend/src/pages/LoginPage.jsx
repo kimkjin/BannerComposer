@@ -29,7 +29,7 @@ function LoginPage() {
   return (
     <div className="login-container bg-pan-left">
       <div className="login-box">
-        <h1>Privalia Composer</h1>
+        <h1>Banner Composer</h1>
         <p>Por favor, faça o login para continuar.</p>
         <form onSubmit={handleSubmit}>
           <div className="input-group">

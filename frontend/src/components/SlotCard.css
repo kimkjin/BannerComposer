@@ -84,7 +84,7 @@
   border: none;
   cursor: pointer;
   padding: 0;
-  margin-left: 0.25rem; /* Um pequeno espaço entre os botões A/B e o cadeado */
+  margin-left: 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -109,9 +109,8 @@
   opacity: 1;
 }
 
-/* Feedback visual para o card inteiro quando travado */
 .slot-card.is-locked {
-  border-color: var(--privalia-pink);
+  border-color: var(--composer-pink);
   box-shadow: 0 4px 12px rgba(230, 0, 126, 0.15);
   background-color: #fff9fc;
 }

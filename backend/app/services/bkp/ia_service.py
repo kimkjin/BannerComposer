@@ -8,7 +8,6 @@ import cv2
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- Funções analyze e analyze_logo_placement_area permanecem as mesmas ---
 try:
     MODEL_PATH = "app/static/models/yolo11n.pt" 
     model = YOLO(MODEL_PATH)
@@ -65,7 +64,6 @@ def draw_detections_on_image(image_bytes: bytes, fmt_config: dict) -> bytes:
     
     img_w, img_h = original_image.size
     
-    # --- NOVA LÓGICA DE ESCALA ---
     if rules.get('type') == 'standard' and 'logo_area' in rules:
         margin = rules.get('margin', {'x': 0, 'y': 20})
         logo_area = rules['logo_area']
@@ -92,7 +90,6 @@ def draw_detections_on_image(image_bytes: bytes, fmt_config: dict) -> bytes:
     
     focus_x_scaled = int(focus_point_x * scale)
     
-    # --- LÓGICA DE POSICIONAMENTO FINAL ---
     paste_x = int(target_x_on_canvas - focus_x_scaled)
     
     if main_box and rules.get('type') == 'standard':
@@ -110,7 +107,6 @@ def draw_detections_on_image(image_bytes: bytes, fmt_config: dict) -> bytes:
     
     final_canvas.paste(resized_image, (paste_x, paste_y))
 
-    # --- DESENHO DAS INFORMAÇÕES DE DEPURAÇÃO ---
     draw = ImageDraw.Draw(final_canvas, 'RGBA')
     COLOR_LOGO_AREA = (0, 170, 255, 100); COLOR_COMP_AREA = (126, 0, 230, 80)
     if 'logo_area' in rules and 'margin' in rules:

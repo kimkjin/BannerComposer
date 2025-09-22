@@ -23,25 +23,18 @@ function ImageEditorModal({ preview, onClose, onSave, globalTaglineState }) {
     } = preview;
 
     const exceptionFormats = ['SLOT1_NEXT_WEB.jpg', 'SLOT1_NEXT_WEB_PRE.jpg'];
-    
-    // Estados de imagem e fundo
     const [backgroundType, setBackgroundType] = useState('image');
     const [solidColor, setSolidColor] = useState('rgba(255,255,255,1)');
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-    
-    // Estado para gerenciar os múltiplos logos
     const [logoStates, setLogoStates] = useState([]);
-    
-    // Estados da tagline
     const [isLocalTaglineEnabled, setIsLocalTaglineEnabled] = useState(false);
     const [taglinePos, setTaglinePos] = useState({ x: 0, y: 0 });
     const [localTaglineFontSize, setLocalTaglineFontSize] = useState(globalTaglineState.font_size);
 
     const { setGradient } = useColorPicker(backgroundOverride?.color || 'linear-gradient(90deg, #fff 0%, #000 100%)', setSolidColor);
-    
-    // --- CORREÇÃO AQUI: EFEITO DE INICIALIZAÇÃO REFEITO ---
+
     useEffect(() => {
         setBackgroundType(backgroundOverride?.type || 'image');
         setSolidColor(backgroundOverride?.color || 'rgba(255,255,255,1)');
@@ -82,16 +75,15 @@ function ImageEditorModal({ preview, onClose, onSave, globalTaglineState }) {
 
     useEffect(() => {
         if (logoStates.length === 0 || taglineOverride?.x !== undefined) {
-            return; // Não faz nada se não houver logos ou se a posição for manual
+            return;
         }
-        
-        // Pega a referência do último logo da lista
+
         const lastLogo = logoStates[logoStates.length - 1];
 
         const logoHeight = lastLogo.width / lastLogo.aspectRatio;
         const defaultX = exceptionFormats.includes(formatName) 
-            ? lastLogo.x + (lastLogo.width - 200) / 2 // Centralizado para formatos especiais
-            : lastLogo.x; // Alinhado à esquerda para os demais
+            ? lastLogo.x + (lastLogo.width - 200) / 2 
+            : lastLogo.x; 
         const defaultY = lastLogo.y + logoHeight + (globalTaglineState?.offset_y || 5);
 
         setTaglinePos({ x: defaultX, y: defaultY });
@@ -112,7 +104,7 @@ function ImageEditorModal({ preview, onClose, onSave, globalTaglineState }) {
         const saveData = {
             image: backgroundType === 'image' ? { x: Math.round(croppedAreaPixels?.x || 0), y: Math.round(croppedAreaPixels?.y || 0), width: Math.round(croppedAreaPixels?.width || 0), height: Math.round(croppedAreaPixels?.height || 0), crop, zoom } : null,
             background: backgroundType !== 'image' ? { type: backgroundType, color: solidColor } : null,
-            logo: finalLogoOverrides, // AQUI: Envia um array de objetos de logo
+            logo: finalLogoOverrides, 
             tagline: isLocalTaglineEnabled ? { ...globalTaglineState, enabled: true, x: Math.round(taglinePos.x), y: Math.round(taglinePos.y), font_size: localTaglineFontSize } : null,
         };
         onSave(formatName, saveData);
@@ -146,13 +138,11 @@ function ImageEditorModal({ preview, onClose, onSave, globalTaglineState }) {
                         <div className="editor-viewport" style={{ width: `${preview.width}px`, height: `${preview.height}px`, background: backgroundType !== 'image' ? solidColor : '#e0e0e0', position: 'relative', overflow: 'hidden' }}>
                             {backgroundType === 'image' && <Cropper image={preview.originalImageB64} crop={crop} onCropChange={setCrop} zoom={zoom} onZoomChange={setZoom} aspect={preview.width / preview.height} objectFit="cover" onCropComplete={onCropComplete} />}
                             
-                            {/* --- RENDERIZAÇÃO DE MÚLTIPLOS LOGOS --- */}
                             {logoStates.map((state, index) => (
                                 <Rnd
                                     key={state.id}
                                     className="logo-rnd"
                                     style={{ position: 'absolute', zIndex: 10 + index }}
-                                    // A altura agora é calculada com a proporção correta
                                     size={{ width: state.width, height: state.aspectRatio ? state.width / state.aspectRatio : state.width }}
                                     position={{ x: state.x, y: state.y }}
                                     onDragStop={(_, d) => handleLogoChange(index, { x: d.x, y: d.y })}

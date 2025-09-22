@@ -1,7 +1,6 @@
-// frontend/src/components/UploadArea.jsx
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import './UploadArea.css'; // Crie este arquivo para estilização
+import './UploadArea.css';
 
 function UploadArea({ onFileSelect, title, imageId }) {
   const [preview, setPreview] = useState(null);

@@ -8,7 +8,6 @@ from . import ia_service
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- Carregamento e Pré-processamento da Configuração de Formatos ---
 try:
     with open("app/static/formats.json", "r", encoding="utf-8") as f:
         config = json.load(f)
@@ -40,9 +39,7 @@ def compose_single_format(original_image: Image.Image, analysis: dict, fmt_confi
 
     if 'logo_only' not in rule_type:
         img_w, img_h = original_image.size
-        
-        # --- LÓGICA DE ESCALA FINAL ---
-        # 1. Calcular a escala horizontal necessária para centralização
+ 
         if rule_type == 'standard' and 'logo_area' in rules:
             margin = rules.get('margin', {'x': 0, 'y': 20})
             logo_area = rules['logo_area']
@@ -56,7 +53,6 @@ def compose_single_format(original_image: Image.Image, analysis: dict, fmt_confi
         scale_x_right = (canvas_w - target_x_on_canvas) / (img_w - focus_point_x) if (img_w - focus_point_x) > 0 else 1.0
         scale_x = max(scale_x_left, scale_x_right)
 
-        # 2. Calcular a escala vertical para ajustar o SUJEITO (person_box) à ÁREA DE COMPOSIÇÃO
         scale_y = canvas_h / img_h # Fallback
         if main_box and rule_type == 'standard':
             margin = rules.get('margin', {'x': 0, 'y': 20})
@@ -64,8 +60,7 @@ def compose_single_format(original_image: Image.Image, analysis: dict, fmt_confi
             comp_area_h = canvas_h - (margin.get('y') * 2)
             if person_box_h > 0 and comp_area_h > 0:
                 scale_y = comp_area_h / person_box_h
-        
-        # 3. A escala final é a maior para cumprir todas as regras
+
         scale = max(scale_x, scale_y)
         
         new_w, new_h = int(img_w * scale), int(img_h * scale)
@@ -73,20 +68,16 @@ def compose_single_format(original_image: Image.Image, analysis: dict, fmt_confi
         
         focus_x_scaled = int(focus_point_x * scale)
         
-        # --- LÓGICA DE POSICIONAMENTO FINAL ---
         paste_x = int(target_x_on_canvas - focus_x_scaled)
         
-        # O posicionamento Y agora usa o topo da CAIXA DE DETECÇÃO, não o topo da cabeça
         if main_box and rule_type == 'standard':
             margin = rules.get('margin', {'x': 0, 'y': 20})
             box_top_y_scaled = main_box[1] * scale
             paste_y = int(margin.get('y') - box_top_y_scaled)
         else:
-            # Fallback para o método antigo se não houver caixa
             subject_top_y_scaled = analysis['subject_top_y'] * scale
             paste_y = int(rules.get('margin', {}).get('y', 20) - subject_top_y_scaled)
 
-        # "PRENDER" (CLAMP) O POSICIONAMENTO DENTRO DOS LIMITES VÁLIDOS
         left_bound = canvas_w - new_w; right_bound = 0
         top_bound = canvas_h - new_h; bottom_bound = 0
         
@@ -95,7 +86,6 @@ def compose_single_format(original_image: Image.Image, analysis: dict, fmt_confi
         
         canvas.paste(resized_image, (paste_x, paste_y))
 
-    # --- Posicionamento do logo e casos especiais ---
     if logo_bytes and rule_type not in ['full_bleed', 'logo_only_fill']:
         try:
             logo_image = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")

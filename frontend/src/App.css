@@ -1,15 +1,11 @@
-/* frontend/src/App.css */
-
-/* 1. Variáveis Globais */
 :root {
   --background-color: #f0f2f5;
   --card-background: #ffffff;
   --text-color: #1c1e21;
-  --primary-color: #e6007e; /* Cor da Privalia */
+  --primary-color: #e6007e; 
   --border-color: #dddfe2;
 }
 
-/* 2. Estilos de Base */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
@@ -17,7 +13,6 @@ body {
   color: var(--text-color);
 }
 
-/* 3. Estilos dos Elementos do App.jsx */
 .App {
   text-align: center;
 }
@@ -38,7 +33,7 @@ body {
 .composer-main {
   padding: 0 2rem;
   max-width: 1600px;
-  margin: 0 auto; /* Centraliza o conteúdo principal */
+  margin: 0 auto; 
 }
 
 .controls {

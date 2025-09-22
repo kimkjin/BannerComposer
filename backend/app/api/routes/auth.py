@@ -9,7 +9,6 @@ import json
 import os
 
 router = APIRouter()
-
 USERS_FILE = 'users.json'
 users_db = []
 if os.path.exists(USERS_FILE):
@@ -22,6 +21,7 @@ class Token(BaseModel):
 
 def create_access_token(data: dict):
     to_encode = data.copy()
+    # O token expira em 8 horas.
     expire = datetime.utcnow() + timedelta(hours=8)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
@@ -29,7 +29,7 @@ def create_access_token(data: dict):
 
 @router.post("/login", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-
+    
     user = next((u for u in users_db if u['username'] == form_data.username), None)
 
     if not user:
@@ -40,13 +40,13 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
     password_bytes = form_data.password.encode('utf-8')
     hashed_password_bytes = user['hashed_password'].encode('utf-8')
-    
+
     if not bcrypt.checkpw(password_bytes, hashed_password_bytes):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuário ou senha incorretos",
         )
-
+        
     access_token = create_access_token(data={"sub": user['username']})
     
     return {"access_token": access_token, "token_type": "bearer"}

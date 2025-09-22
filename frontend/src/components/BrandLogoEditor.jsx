@@ -1,5 +1,3 @@
-// frontend/src/components/BrandLogoEditor.jsx
-
 import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
 import './BrandLogoEditor.css';
@@ -12,10 +10,8 @@ function BrandLogoEditor({ preview, onClose, onSave }) {
         logoOverrides = [] 
     } = preview;
 
-    // NOVO: Estado para gerenciar múltiplos logos
     const [logoStates, setLogoStates] = useState([]);
 
-    // Efeito de inicialização para carregar os dados dos logos
     useEffect(() => {
         const logoPromises = selectedLogos.map((logo, index) => new Promise(resolve => {
             const override = logoOverrides[index] || {};
@@ -37,7 +33,6 @@ function BrandLogoEditor({ preview, onClose, onSave }) {
         Promise.all(logoPromises).then(setLogoStates);
     }, [preview]);
 
-    // Handler para atualizar um logo específico
     const handleLogoChange = (index, newProps) => {
         setLogoStates(currentStates =>
             currentStates.map((state, i) => (i === index ? { ...state, ...newProps } : state))
@@ -45,7 +40,6 @@ function BrandLogoEditor({ preview, onClose, onSave }) {
     };
 
     const handleSave = () => {
-        // Coleta os dados de todos os logos do estado
         const finalLogoOverrides = logoStates.map(state => ({
             x: Math.round(state.x),
             y: Math.round(state.y),
@@ -57,7 +51,7 @@ function BrandLogoEditor({ preview, onClose, onSave }) {
         const saveData = {
             image: null,
             background: null,
-            logo: finalLogoOverrides, // Envia um array de overrides
+            logo: finalLogoOverrides, 
             tagline: null,
         };
         onSave(formatName, saveData);

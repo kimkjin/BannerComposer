@@ -59,15 +59,14 @@ function SearchableDropdown({ onSearch, onSelect, placeholder }) {
         className="search-input"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onFocus={handleFocus} // <-- Adicionado o evento onFocus
+        onFocus={handleFocus}
         placeholder={placeholder}
-        autoComplete="off" // Previne o autocompletar do navegador
+        autoComplete="off" 
       />
       {isOpen && results.length > 0 && (
         <ul className="results-list">
           {results.map((item) => (
             <li key={item} onMouseDown={() => handleSelect(item)}>
-              {/* Usar onMouseDown em vez de onClick para disparar antes do evento onBlur do input */}
               {item}
             </li>
           ))}

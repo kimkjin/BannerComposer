@@ -21,7 +21,7 @@
   padding: 0.75rem;
   font-size: 1rem;
   font-weight: bold;
-  background-color: var(--privalia-pink); /* Cor da marca! */
+  background-color: var(--composer-pink); /* Cor da marca! */
   color: white; 
   border: none;
   border-radius: 8px;
@@ -142,7 +142,7 @@
 }
 
 .logo-thumbnail.selected {
-    border-color: var(--privalia-pink);
+    border-color: var(--composer-pink);
     background-color: #fff5fa;
 }
 

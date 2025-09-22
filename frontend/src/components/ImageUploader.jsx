@@ -1,14 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 
-// Opcional: crie um CSS específico para ele ou use o CSS do BriefingPanel
-// import './ImageUploader.css'; 
-
 function ImageUploader({ title, onFileSelect, imageId }) {
     const [preview, setPreview] = useState(null);
     const inputRef = useRef(null);
-
-    // Efeito para limpar a URL do objeto da memória quando o componente for desmontado
-    // Isso previne "memory leaks" no navegador.
     useEffect(() => {
         return () => {
             if (preview) {

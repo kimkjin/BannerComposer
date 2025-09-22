@@ -29,8 +29,7 @@ function SplitLayoutEditor({ preview, onClose, onSave }) {
             const fitZoom = Math.max(rightPanelWidth / img.naturalWidth, rightPanelHeight / img.naturalHeight);
             setZoom(imageOverride?.zoom || fitZoom);
         };
-
-        // --- CORREÇÃO: Carrega imagens dos logos de forma assíncrona para obter as dimensões corretas ---
+        
         const logoPromises = selectedLogos.map((logo, index) => new Promise(resolve => {
             const override = logoOverrides[index] || {};
             const logoImg = new Image();
@@ -50,7 +49,7 @@ function SplitLayoutEditor({ preview, onClose, onSave }) {
                 });
             };
             
-            logoImg.onerror = () => { // Fallback para o caso de erro no carregamento da imagem
+            logoImg.onerror = () => { 
                 resolve({ id: `${logo.folder}-${logo.filename}`, data: logo.data, aspectRatio: 1 });
             };
 
@@ -61,7 +60,7 @@ function SplitLayoutEditor({ preview, onClose, onSave }) {
             setLogoStates(initialStates);
         });
 
-    }, [preview]); // A dependência de 'preview' é suficiente
+    }, [preview]); 
 
     const onCropComplete = useCallback((_, areaPixels) => {
         setCroppedAreaPixels(areaPixels);
@@ -74,7 +73,6 @@ function SplitLayoutEditor({ preview, onClose, onSave }) {
     };
 
     const handleSave = () => {
-        // (Esta função está correta e não precisa de alterações)
         if (!croppedAreaPixels) { alert('Mova a imagem para registrar a posição.'); return; }
         const finalLogoOverrides = logoStates.map(state => ({
             x: Math.round(state.x), y: Math.round(state.y),

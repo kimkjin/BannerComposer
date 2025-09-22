@@ -7,11 +7,9 @@ import io
 from pydantic import BaseModel
 from typing import Dict
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Response 
-from ...services import composition_service, ia_service
+from ...services import composition_service, ia_service, logo_service, zip_service
 from ...models.schemas import ClientLog
-from ...services import zip_service
 from ...services.composition_service import FORMAT_CONFIG
-import os
 import shutil
 
 router = APIRouter()
@@ -40,21 +38,14 @@ async def log_client_error(log: ClientLog):
 
 @router.post("/generate-entrega-preview")
 async def generate_entrega_preview(payload: EntregaPayload):
-    """
-    Recebe os componentes em base64 e gera apenas o formato ENTREGA.
-    """
     try:
-        # Converte os dados base64 recebidos em bytes de imagem
         generated_images = {
             'SLOT1_WEB.jpg': {'image_bytes': base64.b64decode(payload.slot1_web_jpg)},
             'SHOWROOM_MOBILE.jpg': {'image_bytes': base64.b64decode(payload.showroom_mobile_jpg)},
             'HOME_PRIVATE.jpg': {'image_bytes': base64.b64decode(payload.home_private_jpg)}
         }
         
-        # Obtém o mapa de configurações de formato
         formats_map = {fmt['name']: fmt for fmt in composition_service.FORMAT_CONFIG}
-
-        # Chama a função existente que monta o layout
         entrega_bytes = composition_service._create_entrega_format(generated_images, formats_map)
         
         return Response(content=entrega_bytes, media_type="image/jpeg")
@@ -78,10 +69,9 @@ async def upload_logos(
         raise HTTPException(status_code=400, detail="O nome da marca (pasta) é obrigatório.")
 
     folder_path = os.path.join(LOGOS_BASE_PATH, folder_name)
-
     os.makedirs(folder_path, exist_ok=True)
     
-    allowed_extensions = {".png", ".svg"}
+    allowed_extensions = {'.png', '.svg'}
     uploaded_filenames = []
 
     for file in files:
@@ -105,7 +95,6 @@ async def upload_logos(
 
 @router.get("/list-fonts")
 async def list_fonts(query: str = ""):
-    """Lista os arquivos de fonte (.ttf, .otf) disponíveis no servidor."""
     try:
         if not os.path.exists(FONTS_BASE_PATH) or not os.path.isdir(FONTS_BASE_PATH):
             logger.warning(f"Diretório de fontes não encontrado ou não é um diretório: {FONTS_BASE_PATH}")
@@ -153,17 +142,15 @@ async def generate_previews(
         files_bytes = { "imageA": await imageA.read(), "imageB": await imageB.read() }
         assignments_dict = json.loads(await assignments.read())
         overrides_dict = json.loads(await overrides.read())
-        # Desserializar a string JSON de logos para uma lista Python
         selected_logos_list = json.loads(selected_logos)
 
         composed_data = composition_service.compose_all_formats_assigned(
             files_bytes,
             assignments_dict,
-            selected_logos_list, # <-- Passar a lista de logos
+            selected_logos_list,
             overrides=overrides_dict
         )
         
-        # O resto da função permanece igual...
         formats_map = {fmt['name']: fmt for fmt in composition_service.FORMAT_CONFIG}
         previews_data = {}
         for name, data_dict in composed_data.items():
@@ -226,21 +213,8 @@ async def generate_single_preview(
         raise HTTPException(status_code=500, detail=f"Erro interno no servidor: {str(e)}")
 
 @router.get("/list-logo-folders")
-async def list_logo_folders(query: str = ""):
-    try:
-        all_folders = [d for d in os.listdir(LOGOS_BASE_PATH) if os.path.isdir(os.path.join(LOGOS_BASE_PATH, d))]
-        
-        if query:
-            filtered_folders = [folder for folder in all_folders if query.lower() in folder.lower()]
-            results = sorted(filtered_folders)
-        else:
-            results = sorted(all_folders)
-
-        return {"folders": results[:10]}
-        
-    except FileNotFoundError:
-        logger.error(f"Diretório de logos não encontrado em: {LOGOS_BASE_PATH}")
-        raise HTTPException(status_code=404, detail="Diretório de logos não encontrado.")
+async def get_logo_folders(query: str = ""):
+    return logo_service.list_logo_folders(query)
 
 @router.post("/generate-zip")
 async def generate_zip(request: ZipRequest):
@@ -272,7 +246,7 @@ async def generate_zip(request: ZipRequest):
         zip_buffer = zip_service.create_zip_from_images(images_to_zip)
         zip_filename = f"images_{request.campaign_id}.zip"
         
-        headers = {'Content-Disposition': f'attachment; filename="{zip_filename}"'}
+        headers = {'Content-Disposition': f'attachment; filename="{zip_filename}"'} # Corrected escaping for quotes within f-string
         
         return Response(content=zip_buffer.getvalue(), media_type='application/zip', headers=headers)
 
@@ -281,54 +255,5 @@ async def generate_zip(request: ZipRequest):
         raise HTTPException(status_code=500, detail=f"Erro interno ao gerar o arquivo ZIP: {str(e)}")
 
 @router.get("/list-logos/{folder_name}")
-async def list_logos_in_folder(folder_name: str):
-    """Lista os logos válidos (PNG, SVG) de uma pasta, removendo o espaço transparente extra."""
-    folder_path = os.path.join(LOGOS_BASE_PATH, folder_name)
-    if not os.path.isdir(folder_path):
-        raise HTTPException(status_code=404, detail="Pasta da marca não encontrada.")
-
-    valid_extensions = ['.png', '.svg']
-    logos = []
-    for filename in os.listdir(folder_path):
-        if any(filename.lower().endswith(ext) for ext in valid_extensions):
-            try:
-                # Lógica para remover espaço transparente
-                with open(os.path.join(folder_path, filename), "rb") as f:
-                    original_logo_bytes = f.read()
-
-                # Usa a biblioteca Pillow para abrir a imagem
-                logo_image = Image.open(io.BytesIO(original_logo_bytes)).convert("RGBA")
-                
-                # Encontra a caixa delimitadora dos pixels visíveis
-                bbox = logo_image.getbbox()
-                
-                final_image_to_encode = logo_image
-                if bbox:
-                    # Se uma caixa foi encontrada, recorta a imagem para essa caixa
-                    final_image_to_encode = logo_image.crop(bbox)
-
-                # Salva a imagem recortada (ou a original se não houver recorte) em um buffer na memória
-                buffer = io.BytesIO()
-                # Salva como PNG para manter a transparência
-                final_image_to_encode.save(buffer, format="PNG")
-                cropped_logo_bytes = buffer.getvalue()
-                
-                # Codifica os bytes da *nova imagem recortada* para Base64
-                logo_b64 = base64.b64encode(cropped_logo_bytes).decode('utf-8')
-                
-                # Para SVGs, a lógica de recorte do Pillow não se aplica, então usamos o original
-                if filename.lower().endswith('.svg'):
-                    logo_b64 = base64.b64encode(original_logo_bytes).decode('utf-8')
-
-                file_type = 'svg+xml' if filename.lower().endswith('.svg') else 'png'
-                
-                logos.append({
-                    "filename": filename,
-                    "data": f"data:image/{file_type};base64,{logo_b64}"
-                })
-            except Exception as e:
-                logger.error(f"Erro ao processar o logo {filename}: {e}")
-                # Pode optar por pular este logo ou enviar o original sem recorte
-                continue
-                
-    return {"logos": logos}
+async def get_logos_in_folder(folder_name: str):
+    return logo_service.list_logos_in_folder(folder_name)

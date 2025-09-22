@@ -1,19 +1,17 @@
-// frontend/src/App.jsx
-
 import React, { useState } from 'react';
-import { getPreviews } from './api/composerApi'; // Supondo que você criou este arquivo
-import PreviewGrid from './components/PreviewGrid'; // E este
-import './App.css'; // Vamos criar um estilo básico
+import { getPreviews } from './api/composerApi';
+import PreviewGrid from './components/PreviewGrid';
+import './App.css'; 
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [previews, setPreviews] = useState({}); // Usar um objeto para as pré-visualizações
+  const [previews, setPreviews] = useState({}); 
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
-    setPreviews({}); // Limpa as pré-visualizações antigas
+    setPreviews({}); 
     setErrorMessage('');
   };
 
@@ -41,7 +39,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Privalia Composer</h1>
+        <h1>Banner Composer</h1>
         <p>Faça o upload de uma imagem para gerar todas as pré-visualizações dos formatos.</p>
       </header>
       

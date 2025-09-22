@@ -1,4 +1,4 @@
-@import './ImageEditorModal.css';
+@import './EditorCommon.css';
 
 .split-editor-content {
   background-color: white;
@@ -12,19 +12,19 @@
   display: flex;
   border: 1px solid #ccc;
   border-radius: 8px;
-  overflow: hidden; /* Garante que os cantos arredondados funcionem */
+  overflow: hidden; 
   margin-top: 1rem;
 }
 
 .split-editor-left-panel {
   background-color: white;
-  position: relative; /* Crucial para o Rnd bounds e para a grade */
+  position: relative; 
   border-right: 1px solid #ccc;
   box-sizing: border-box;
 }
 
 .split-editor-right-panel {
-  position: relative; /* Crucial para o Cropper */
+  position: relative; 
   background-color: #e0e0e0;
 }
 
@@ -32,7 +32,7 @@
   border: 1px dashed rgba(0, 0, 0, 0.4);
 }
 .logo-rnd-split:hover {
-  border-color: var(--privalia-pink);
+  border-color: var(--composer-pink);
 }
 
 .split-editor-controls {
@@ -43,14 +43,4 @@
   padding: 1rem;
   background-color: #f8f9fa;
   border-radius: 8px;
-}
-
-.control-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.control-section h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
 }

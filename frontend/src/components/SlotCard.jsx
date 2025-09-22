@@ -51,8 +51,8 @@ function SlotCard({
                 title={isLocked ? "Destravar edição" : "Travar edição"}
                 disabled={isLoading}
              >
-                {/* + ALTERE A LINHA ABAIXO */}
-                <img src={isLocked ? 'src/assets/lock.svg' : 'src/assets/unlock.svg'} alt="Lock Status" />
+                {/* ALTERAR A LINHA ABAIXO */}
+                <img src={isLocked ? '/src/assets/lock.svg' : '/src/assets/unlock.svg'} alt="Lock Status" />
              </button>
           )}
         </div>
@@ -78,17 +78,6 @@ function SlotCard({
           <div className="preview-placeholder-text"></div>
         )}
       </div>
-
-      {!isSpecialComposite && (
-        <button 
-          className="slot-test-btn" 
-          onClick={() => { /* sua função de teste aqui */ }}
-          disabled={isLoading || !assignment || isLocked}
-          title={!assignment ? "Atribua uma imagem primeiro" : isLocked ? "Slot travado" : "Testar reconhecimento e layout"}
-        >
-          Testar Layout
-        </button>
-      )}
     </div>
   );
 }

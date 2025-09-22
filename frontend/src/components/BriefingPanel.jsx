@@ -73,10 +73,8 @@ function BriefingPanel({
       </div>
 
       <div className="panel-section">
-        {/* --- MUDANÇA: Adicionado o header para alinhar o título e o botão --- */}
         <div className="panel-section-header">
           <h3>2. Marca e Logo</h3>
-          {/* Input de arquivo escondido */}
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -85,7 +83,6 @@ function BriefingPanel({
             accept=".png,.svg"
             style={{ display: 'none' }} 
           />
-          {/* Botão de upload que aciona o input */}
           <button className="upload-logo-btn" onClick={handleUploadClick} title="Fazer upload de novos logos">
             <img src="/upload.png" alt="Upload Logo" />
           </button>
@@ -113,7 +110,6 @@ function BriefingPanel({
         )}
       </div>
 
-      {/* O resto do seu JSX permanece exatamente o mesmo */}
       {selectedLogos.length > 0 && (
         <div className="panel-section selected-logos-area">
             <h4>Logos da Campanha</h4>

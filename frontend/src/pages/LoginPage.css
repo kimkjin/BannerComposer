@@ -14,7 +14,7 @@
   padding: 1rem;
   box-sizing: border-box;
   background: linear-gradient(75deg, 
-    var(--privalia-pink), 
+    var(--composer-pink), 
     #34495e, 
     #2c3e50, 
     #1abc9c
@@ -94,7 +94,7 @@
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 
-  background: var(--privalia-pink);
+  background: var(--composer-pink);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
